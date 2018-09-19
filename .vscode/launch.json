@@ -10,9 +10,9 @@
             "request": "launch",
             "preLaunchTask": "build",
             // If you have changed target frameworks, make sure to update the program path.
-            "program": "${workspaceFolder}/RTMService/ChatUnitTesting/bin/Debug/netcoreapp2.1/ChatUnitTesting.dll",
+            "program": "${workspaceFolder}/ChatUnitTesting/bin/Debug/netcoreapp2.1/ChatUnitTesting.dll",
             "args": [],
-            "cwd": "${workspaceFolder}/RTMService/ChatUnitTesting",
+            "cwd": "${workspaceFolder}/ChatUnitTesting",
             // For more information about the 'console' field, see https://github.com/OmniSharp/omnisharp-vscode/blob/master/debugger-launchjson.md#console-terminal-window
             "console": "internalConsole",
             "stopAtEntry": false,

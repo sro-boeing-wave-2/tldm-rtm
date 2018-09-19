@@ -7,7 +7,7 @@
             "type": "process",
             "args": [
                 "build",
-                "${workspaceFolder}/ChatUnitTesting/ChatUnitTesting.csproj"
+                "${workspaceFolder}/RTMService.csproj"
             ],
             "problemMatcher": "$msCompile"
         }

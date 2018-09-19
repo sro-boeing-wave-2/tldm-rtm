@@ -1,0 +1,17 @@
+D:\workspace\RTM\RTM Dotnet\tldm\RTMService\ChatUnitTesting\bin\Debug\netcoreapp2.1\xunit.runner.visualstudio.dotnetcore.testadapter.dll
+D:\workspace\RTM\RTM Dotnet\tldm\RTMService\ChatUnitTesting\bin\Debug\netcoreapp2.1\xunit.runner.reporters.netcoreapp10.dll
+D:\workspace\RTM\RTM Dotnet\tldm\RTMService\ChatUnitTesting\bin\Debug\netcoreapp2.1\xunit.runner.utility.netcoreapp10.dll
+D:\workspace\RTM\RTM Dotnet\tldm\RTMService\ChatUnitTesting\bin\Debug\netcoreapp2.1\ChatUnitTesting.deps.json
+D:\workspace\RTM\RTM Dotnet\tldm\RTMService\ChatUnitTesting\bin\Debug\netcoreapp2.1\ChatUnitTesting.runtimeconfig.json
+D:\workspace\RTM\RTM Dotnet\tldm\RTMService\ChatUnitTesting\bin\Debug\netcoreapp2.1\ChatUnitTesting.runtimeconfig.dev.json
+D:\workspace\RTM\RTM Dotnet\tldm\RTMService\ChatUnitTesting\bin\Debug\netcoreapp2.1\ChatUnitTesting.dll
+D:\workspace\RTM\RTM Dotnet\tldm\RTMService\ChatUnitTesting\bin\Debug\netcoreapp2.1\ChatUnitTesting.pdb
+D:\workspace\RTM\RTM Dotnet\tldm\RTMService\ChatUnitTesting\bin\Debug\netcoreapp2.1\RTMService.dll
+D:\workspace\RTM\RTM Dotnet\tldm\RTMService\ChatUnitTesting\obj\Debug\netcoreapp2.1\ChatUnitTesting.csproj.CoreCompileInputs.cache
+D:\workspace\RTM\RTM Dotnet\tldm\RTMService\ChatUnitTesting\obj\Debug\netcoreapp2.1\ChatUnitTesting.AssemblyInfoInputs.cache
+D:\workspace\RTM\RTM Dotnet\tldm\RTMService\ChatUnitTesting\obj\Debug\netcoreapp2.1\ChatUnitTesting.AssemblyInfo.cs
+D:\workspace\RTM\RTM Dotnet\tldm\RTMService\ChatUnitTesting\obj\Debug\netcoreapp2.1\ChatUnitTesting.csproj.CopyComplete
+D:\workspace\RTM\RTM Dotnet\tldm\RTMService\ChatUnitTesting\obj\Debug\netcoreapp2.1\ChatUnitTesting.dll
+D:\workspace\RTM\RTM Dotnet\tldm\RTMService\ChatUnitTesting\obj\Debug\netcoreapp2.1\ChatUnitTesting.pdb
+D:\workspace\RTM\RTM Dotnet\tldm\RTMService\ChatUnitTesting\bin\Debug\netcoreapp2.1\RTMService.pdb
+D:\workspace\RTM\RTM Dotnet\tldm\RTMService\ChatUnitTesting\obj\Debug\netcoreapp2.1\ChatUnitTesting.csprojAssemblyReference.cache

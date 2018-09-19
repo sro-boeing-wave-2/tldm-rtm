@@ -1,0 +1,15 @@
+language: csharp
+solution: RTMService.sln
+notifications:
+  email:
+    on_success: always
+    on_failure: always
+  slack: srboeingdotnet:pZz5KfrgntyjLpS9a1d2b1rH
+mono: none
+dotnet: 2.1
+script:
+  - chmod +x ./deploy.sh
+  - dotnet restore
+  - dotnet test ChatUnitTesting/
+after_success:
+  - /bin/bash ./deploy.sh

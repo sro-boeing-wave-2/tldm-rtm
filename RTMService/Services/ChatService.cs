@@ -22,7 +22,7 @@ namespace RTMService.Services
 
         public ChatService()
         {
-            _client = new MongoClient("mongodb://localhost:27017");
+            _client = new MongoClient("mongodb://db/admindatabase");
             _server = _client.GetServer();
             _dbWorkSpace = _client.GetDatabase("AllWorkspace").GetCollection<Workspace>("Workspace");
             _dbChannel = _client.GetDatabase("AllChannels").GetCollection<Channel>("Channel");
@@ -239,12 +239,23 @@ namespace RTMService.Services
             return newUser;
 
         }
+        public async Task<List<string>> GetAllUserChannels(string emailId)
+        {
+
+            var listOfChannels = await _dbChannel.Find(p => (p.ChannelName != "") && (p.Users.Any(u => u.EmailId == emailId))).ToListAsync();
+            List<string> listOfChannelIds = new List<string>();
+            foreach (var channel in listOfChannels)
+            {
+                listOfChannelIds.Add(channel.ChannelId);
+            }
+            return listOfChannelIds;
+        }
         //changed
         public async Task<List<Message>> GetLastNMessagesOfChannel(string channelId, int N)
         {
             var listOfMessages = await  _dbMessage.Find(m => m.ChannelId==channelId).ToListAsync();
             var sortedMessages = listOfMessages.OrderBy(m => m.Timestamp).ToList();
-            var list = sortedMessages.Skip(sortedMessages.Count() - N).Take(2).ToList();
+            var list = sortedMessages.Skip(sortedMessages.Count() - N).Take(10).ToList();
             return list;
             //return channel.Messages.Skip(channel.Messages.Count() - N).Take(3).ToList();
         }
@@ -260,7 +271,7 @@ namespace RTMService.Services
            
             resultChannel.Messages.Add(newMessage);
 
-            var lastmessages = resultChannel.Messages.Skip(Math.Max(0, resultChannel.Messages.Count() - 5)).ToList();
+            var lastmessages = resultChannel.Messages.Skip(Math.Max(0, resultChannel.Messages.Count() - 50)).ToList();
             Channel cacheChannel = new Channel()
             {
                 Messages = lastmessages,

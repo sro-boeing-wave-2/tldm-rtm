@@ -269,7 +269,22 @@ namespace RTMService.Controllers
             List<Channel> channels = iservice.GetAllUserChannelsInWorkSpace(workspaceName, emailId).Result;
             return new ObjectResult(channels);
         }
-
+        // // getting all channels of a user by emailid
+        [HttpGet]
+        [Route("workspaces/userchannels/{emailId}")]
+        public IActionResult GetAllChannelsOfUser(string emailId)
+        {
+            if (emailId == null)
+            {
+                return NotFound("Please enter email id");
+            }
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+            List<string> channelIds = iservice.GetAllUserChannels(emailId).Result;
+            return new ObjectResult(channelIds);
+        }
         // // getting all channels a user is part of in a workspace by workspace name and emailid
         [HttpGet]
         [Route("workspaces/onetoone/{workspaceName}/{senderMail}/{receiverMail}")]

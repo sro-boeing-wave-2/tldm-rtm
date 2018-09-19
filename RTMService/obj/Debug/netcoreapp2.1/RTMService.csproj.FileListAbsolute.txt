@@ -12,3 +12,17 @@ D:\workspace\RTM\RTM Dotnet\tldm\RTMService\RTMService\obj\Debug\netcoreapp2.1\R
 D:\workspace\RTM\RTM Dotnet\tldm\RTMService\RTMService\obj\Debug\netcoreapp2.1\RTMService.RazorAssemblyInfo.cs
 D:\workspace\RTM\RTM Dotnet\tldm\RTMService\RTMService\obj\Debug\netcoreapp2.1\RTMService.RazorTargetAssemblyInfo.cache
 D:\workspace\RTM\RTM Dotnet\tldm\RTMService\RTMService\obj\Debug\netcoreapp2.1\RTMService.csprojAssemblyReference.cache
+D:\workspace\RTM\RTM Git\tldm\RTMService\bin\Debug\netcoreapp2.1\RTMService.deps.json
+D:\workspace\RTM\RTM Git\tldm\RTMService\bin\Debug\netcoreapp2.1\RTMService.runtimeconfig.json
+D:\workspace\RTM\RTM Git\tldm\RTMService\bin\Debug\netcoreapp2.1\RTMService.runtimeconfig.dev.json
+D:\workspace\RTM\RTM Git\tldm\RTMService\bin\Debug\netcoreapp2.1\RTMService.dll
+D:\workspace\RTM\RTM Git\tldm\RTMService\bin\Debug\netcoreapp2.1\RTMService.pdb
+D:\workspace\RTM\RTM Git\tldm\RTMService\obj\Debug\netcoreapp2.1\RTMService.csprojAssemblyReference.cache
+D:\workspace\RTM\RTM Git\tldm\RTMService\obj\Debug\netcoreapp2.1\RTMService.csproj.CoreCompileInputs.cache
+D:\workspace\RTM\RTM Git\tldm\RTMService\obj\Debug\netcoreapp2.1\RTMService.RazorAssemblyInfo.cache
+D:\workspace\RTM\RTM Git\tldm\RTMService\obj\Debug\netcoreapp2.1\RTMService.RazorAssemblyInfo.cs
+D:\workspace\RTM\RTM Git\tldm\RTMService\obj\Debug\netcoreapp2.1\RTMService.AssemblyInfoInputs.cache
+D:\workspace\RTM\RTM Git\tldm\RTMService\obj\Debug\netcoreapp2.1\RTMService.AssemblyInfo.cs
+D:\workspace\RTM\RTM Git\tldm\RTMService\obj\Debug\netcoreapp2.1\RTMService.RazorTargetAssemblyInfo.cache
+D:\workspace\RTM\RTM Git\tldm\RTMService\obj\Debug\netcoreapp2.1\RTMService.dll
+D:\workspace\RTM\RTM Git\tldm\RTMService\obj\Debug\netcoreapp2.1\RTMService.pdb

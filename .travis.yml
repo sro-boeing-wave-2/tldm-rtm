@@ -4,7 +4,7 @@ notifications:
   email:
     on_success: always
     on_failure: always
-  slack: srboeingdotnet:pZz5KfrgntyjLpS9a1d2b1rH
+  slack: srboeingdotnet:UIU3Bl3s8QViLrC2yS7GV9NI
 mono: none
 dotnet: 2.1
 script:

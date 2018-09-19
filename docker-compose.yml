@@ -11,5 +11,3 @@ services:
   db:
     image: "mongo:latest"
     container_name: mongodbnew
-    ports:
-      - "27017:27017"

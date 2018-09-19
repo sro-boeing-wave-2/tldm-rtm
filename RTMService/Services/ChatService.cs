@@ -90,6 +90,16 @@ namespace RTMService.Services
                 // newChannel.Users.Add(user);
                 await CreateDefaultChannel(newChannel, workSpace.WorkspaceName);
             }
+            //foreach(var bot in workSpace.Bots)
+            //{
+            //    UserAccountView newUser = new UserAccountView
+            //    {
+            //        EmailId = bot.LogoUrl,
+            //        FirstName = bot.Name,
+            //        LastName = bot.Name
+            //    };
+            //   await AddUserToWorkspace(newUser, workSpace.WorkspaceName);
+            //}
 
             return await GetWorkspaceById(newWorkspace.WorkspaceId);
         }

@@ -12,6 +12,4 @@ script:
   - dotnet restore
   - dotnet test ChatUnitTesting/
 after_success:
-  - ls -alh
-  - ls ./RTMService
   - /bin/bash ./deploy.sh

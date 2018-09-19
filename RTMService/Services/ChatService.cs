@@ -22,7 +22,7 @@ namespace RTMService.Services
 
         public ChatService()
         {
-            _client = new MongoClient("mongodb://db/admindatabase");
+            _client = new MongoClient("mongodb://localhost:27017");
             _server = _client.GetServer();
             _dbWorkSpace = _client.GetDatabase("AllWorkspace").GetCollection<Workspace>("Workspace");
             _dbChannel = _client.GetDatabase("AllChannels").GetCollection<Channel>("Channel");

@@ -52,6 +52,14 @@ namespace ChatUnitTesting
 
         public class FakeChatService : IChatService
         {
+            public async Task<List<string>> GetAllUserChannels(string emailId)
+            {
+
+               // var listOfChannels = await _dbChannel.Find(p => (p.ChannelName != "") && (p.Users.Any(u => u.EmailId == emailId))).ToListAsync();
+                List<string> listOfChannelIds = new List<string>();
+               
+                return listOfChannelIds;
+            }
             public async Task<List<Message>> GetLastNMessagesOfChannel(string channelId, int N)
             {
                 List<Message> list = new List<Message>();

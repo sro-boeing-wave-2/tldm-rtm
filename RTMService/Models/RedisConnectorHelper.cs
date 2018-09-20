@@ -12,7 +12,8 @@ namespace RTMService.Models
         {
             RedisConnectorHelper.lazyConnection = new Lazy<ConnectionMultiplexer>(() =>
             {
-                return ConnectionMultiplexer.Connect("localhost");
+                //return ConnectionMultiplexer.Connect("localhost");
+                return ConnectionMultiplexer.Connect("redis");
             });
         }
 

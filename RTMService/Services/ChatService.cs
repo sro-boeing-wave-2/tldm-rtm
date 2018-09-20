@@ -22,6 +22,7 @@ namespace RTMService.Services
 
         public ChatService()
         {
+           // _client = new MongoClient("mongodb://localhost:27017");
             _client = new MongoClient("mongodb://db/admindatabase");
             _server = _client.GetServer();
             _dbWorkSpace = _client.GetDatabase("AllWorkspace").GetCollection<Workspace>("Workspace");
@@ -429,7 +430,7 @@ namespace RTMService.Services
             var cache = RedisConnectorHelper.Connection.GetDatabase();
 
             var stringifiedChannel = cache.StringGetAsync($"{channelId}");
-            if (stringifiedChannel.Result.HasValue)
+            if (stringifiedChannel.Result.HasValue && channelId!=null)
             {
                 var ChannelObject = JsonConvert.DeserializeObject<Channel>(stringifiedChannel.Result);
 

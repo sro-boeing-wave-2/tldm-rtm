@@ -50,6 +50,16 @@ namespace RTMService.Hubs
             List<string> groups = new List<string>() { "foo" };
             Clients.Groups(groups).SendAsync("SendMessageToGroups", sender, message);
         }
+        public void SendWorkspaceObject(string workspaceName)
+        {
+            var searchedWorkspace = iservice.GetWorkspaceByName(workspaceName).Result;
+            Clients.Clients(Context.ConnectionId).SendAsync("ReceiveUpdatedWorkspace", searchedWorkspace);
+        }
+        public void SendAllUserChannel(string emailId)
+        {
+            var listOfUserChannels = iservice.GetAllUserChannels(emailId).Result;
+            Clients.All.SendAsync("ReceiveUserChannels", listOfUserChannels);
+        }
         public void SendMessageInChannel(string sender, Message message, string channelId)
         //public void SendMessageInChannel(string sender, Message message, string channelId, string workspaceName)
         {
@@ -90,22 +100,32 @@ namespace RTMService.Hubs
         }
         public void SendToAllconnid(string emailId)
         {
-            int i = 0;
-            if (emailId == null && CurrentConnections.ContainsKey(emailId))
-            { return; }
-            else
+            try
             {
-                CurrentConnections[Context.ConnectionId] = emailId;
+                int i = 0;
+                if (emailId == null && CurrentConnections.ContainsKey(emailId))
+                { return; }
+                else
+                {
+                    CurrentConnections[Context.ConnectionId] = emailId;
+                }
+
+
+                string[] arr = new string[CurrentConnections.Count];
+                foreach (var item in CurrentConnections)
+                {
+                    arr[i] = item.Value;
+                    i++;
+                }
+                Clients.All.SendAsync("sendToAllconnid", arr);
             }
-            string[] arr = new string[CurrentConnections.Count];
-            foreach (var item in CurrentConnections)
+            catch
             {
-                arr[i] = item.Value;
-                i++;
+
             }
-            Clients.All.SendAsync("sendToAllconnid", arr);
+
         }
-        
+
         //public WorkspaceState GetNotificationsForChannelsInWorkspace(string workspaceName, string emailId,string channelId, DateTime LastTimeStamp)
         //{
         //    try
@@ -113,7 +133,7 @@ namespace RTMService.Hubs
         //        var cache = RedisConnectorHelper.Connection.GetDatabase();
 
         //        var stringifiedUserState = cache.StringGetAsync($"{emailId}");
-                
+
         //            var UserStateObject = JsonConvert.DeserializeObject<UserState>(stringifiedUserState.Result);
         //            var workspaceStateObject = UserStateObject.ListOfWorkspaceState.
         //                Where(w => w.WorkspaceName == workspaceName).FirstOrDefault();
@@ -121,7 +141,7 @@ namespace RTMService.Hubs
         //            workspaceStateObject.ListOfChannelState.Find(v => v.channelId == channelId).LastTimestamp = LastTimeStamp;
         //            return workspaceStateObject;
 
-                
+
         //    }
         //    catch
         //    {

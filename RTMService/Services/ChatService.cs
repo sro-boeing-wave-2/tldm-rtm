@@ -19,6 +19,7 @@ namespace RTMService.Services
         IMongoCollection<User> _dbUser;
         IMongoCollection<Message> _dbMessage;
         IMongoCollection<OneToOneChannelInfo> _dbOneToOne;
+        //IMongoCollection<UserState> _dbNotificationUserState;
 
         public ChatService()
         {
@@ -30,7 +31,7 @@ namespace RTMService.Services
             _dbUser = _client.GetDatabase("AllUsers").GetCollection<User>("User");
             _dbMessage = _client.GetDatabase("AllMessages").GetCollection<Message>("Message");
             _dbOneToOne = _client.GetDatabase("OneToOneTable").GetCollection<OneToOneChannelInfo>("OneToOne");
-
+           // _dbNotificationUserState = _client.GetDatabase("Notification").GetCollection<UserState>("UserState");
         }
 
         public async Task<IEnumerable<Workspace>> GetAllWorkspacesAsync()
@@ -62,13 +63,18 @@ namespace RTMService.Services
 
             var Workspace = _dbWorkSpace.Find(w => w.WorkspaceName == workspaceName).FirstOrDefaultAsync();
             string jsonString = JsonConvert.SerializeObject(Workspace.Result);
-            await cache.StringSetAsync($"{workspaceName}", jsonString, TimeSpan.FromMinutes(1));
+            await cache.StringSetAsync($"{workspaceName}", jsonString);
 
             return await Workspace;
 
 
 
         }
+        //changed
+        //public async Task CreateNotificationStateOfUser(UserState userState)
+        //{
+        //    await _dbNotificationUserState.InsertOneAsync(userState);
+        //}
 
         public async Task<Workspace> CreateWorkspace(WorkspaceView workSpace)
         {

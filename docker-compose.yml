@@ -3,11 +3,16 @@ services:
   web:
     build: ./RTMService
     container_name: RTM
-    ports:
-      - "5004:80"
+    # ports:
+    #   - "5004:80"
     depends_on:
       - db
       - redis
+    labels:
+     - "SERVICE_NAME=rtm-service"
+     - "SERVICE_TAG=rtm-serviceTag"
+    expose:
+     - "5004"
   db:
     image: "mongo:latest"
     container_name: mongodbnew

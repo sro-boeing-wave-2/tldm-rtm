@@ -19,22 +19,22 @@ namespace RTMService.Services
         IMongoCollection<User> _dbUser;
         IMongoCollection<Message> _dbMessage;
         IMongoCollection<OneToOneChannelInfo> _dbOneToOne;
-        //IMongoCollection<UserState> _dbNotificationUserState;
+        IMongoCollection<UserState> _dbNotificationUserState;
 
 
         // constructor for chat service
         public ChatService()
         {
             // creating mongodb collection for all required models
-           // _client = new MongoClient("mongodb://localhost:27017");
-            _client = new MongoClient("mongodb://db/admindatabase");
+            _client = new MongoClient("mongodb://localhost:27017");
+           // _client = new MongoClient("mongodb://db/admindatabase");
             _server = _client.GetServer();
             _dbWorkSpace = _client.GetDatabase("AllWorkspace").GetCollection<Workspace>("Workspace");
             _dbChannel = _client.GetDatabase("AllChannels").GetCollection<Channel>("Channel");
             _dbUser = _client.GetDatabase("AllUsers").GetCollection<User>("User");
             _dbMessage = _client.GetDatabase("AllMessages").GetCollection<Message>("Message");
             _dbOneToOne = _client.GetDatabase("OneToOneTable").GetCollection<OneToOneChannelInfo>("OneToOne");
-           // _dbNotificationUserState = _client.GetDatabase("Notification").GetCollection<UserState>("UserState");
+            _dbNotificationUserState = _client.GetDatabase("Notification").GetCollection<UserState>("UserState");
         }
 
         //find all workspaces from database
@@ -76,11 +76,15 @@ namespace RTMService.Services
 
         }
         //changed
-        //public async Task CreateNotificationStateOfUser(UserState userState)
-        //{
-        //    await _dbNotificationUserState.InsertOneAsync(userState);
-        //}
-
+        public async Task CreateNotificationStateOfUser(UserState userState)
+        {
+            await _dbNotificationUserState.InsertOneAsync(userState);
+        }
+        // get user state by email Id
+        public async Task<UserState> GetUserStateByEmailId(string emailId)
+        {
+            return await _dbNotificationUserState.Find(w => w.EmailId == emailId).FirstOrDefaultAsync();
+        }
         public async Task<Workspace> CreateWorkspace(WorkspaceView workSpace)
         {
             Workspace newWorkspace = new Workspace
@@ -139,6 +143,22 @@ namespace RTMService.Services
             string jsonStringChannel = JsonConvert.SerializeObject(channel);
             await cache.StringSetAsync($"{channel.ChannelId}", jsonStringChannel);
             ///////////
+            ///////////////Notification Work/////////////////////
+            foreach(var user in channel.Users)
+            {
+                var userstate = await GetUserStateByEmailId(user.EmailId);
+                ChannelState channelState = new ChannelState()
+                {
+                    channelId = channel.ChannelId,
+                    UnreadMessageCount = 0
+                };
+                userstate.ListOfWorkspaceState.Find(w => w.WorkspaceName == workspaceName).ListOfChannelState.Add(channelState);
+                string jsonStringUserState = JsonConvert.SerializeObject(userstate);
+                await cache.StringSetAsync($"{userstate.EmailId}", jsonStringUserState);
+            }
+
+
+            ////////////////////////////////////////////////////////
             return channel;
         }
         public async Task<Channel> CreateDefaultChannel(Channel channel, string workspaceName)
@@ -171,6 +191,37 @@ namespace RTMService.Services
             //changed
             string jsonString = JsonConvert.SerializeObject(channel);
             await cache.StringSetAsync($"{channel.ChannelId}", jsonString);
+
+            ///////////////Notification Work/////////////////////
+
+            var userstate = await GetUserStateByEmailId(channel.Users[0].EmailId);
+            ChannelState channelState = new ChannelState()
+            {
+                channelId = channel.ChannelId,
+                UnreadMessageCount = 0
+            };
+            userstate.ListOfWorkspaceState.Find(w => w.WorkspaceName == workspaceName).ListOfChannelState.Add(channelState);
+            string jsonStringUserState = JsonConvert.SerializeObject(userstate);
+            await cache.StringSetAsync($"{userstate.EmailId}", jsonStringUserState);
+            //var filter = new FilterDefinitionBuilder<UserState>().Where(r => r.EmailId == userstate.EmailId);
+            //await _dbNotificationUserState.ReplaceOneAsync(filter, userstate);
+            var u1 = userstate;
+            u1.ListOfWorkspaceState = userstate.ListOfWorkspaceState;
+            var userstate1 = await GetUserStateByEmailId(channel.Users[1].EmailId);
+            ChannelState channelState1 = new ChannelState()
+            {
+                channelId = channel.ChannelId,
+                UnreadMessageCount = 0
+            };
+            userstate1.ListOfWorkspaceState.Find(w => w.WorkspaceName == workspaceName).ListOfChannelState.Add(channelState1);
+            string jsonStringUserState1 = JsonConvert.SerializeObject(userstate1);
+            await cache.StringSetAsync($"{userstate1.EmailId}", jsonStringUserState1);
+            var u2 = userstate1;
+            u2.ListOfWorkspaceState = userstate1.ListOfWorkspaceState;
+            //var filter1 = new FilterDefinitionBuilder<UserState>().Where(r => r.EmailId == userstate.EmailId);
+            //await _dbNotificationUserState.ReplaceOneAsync(filter1, userstate1);
+
+            ////////////////////////////////////////////////////////
             return channel;
         }
         public async Task<Channel> GetChannelById(string channelId)
@@ -226,6 +277,20 @@ namespace RTMService.Services
             string jsonStringChannel = JsonConvert.SerializeObject(resultChannel);
             await cache.StringSetAsync($"{resultChannel.ChannelId}", jsonStringChannel);
             ///////////
+            ///////////////Notification Work/////////////////////
+
+            var userstate = await GetUserStateByEmailId(newUser.EmailId);
+            ChannelState channel = new ChannelState()
+            {
+                channelId = channelId,
+                UnreadMessageCount = 0
+            };
+            userstate.ListOfWorkspaceState.Find(w => w.WorkspaceName == resultWorkspace.WorkspaceName).ListOfChannelState.Add(channel);
+            string jsonStringUserState = JsonConvert.SerializeObject(userstate);
+            await cache.StringSetAsync($"{userstate.EmailId}", jsonStringUserState);
+
+            ////////////////////////////////////////////////////////
+
             return newUser;
 
         }
@@ -297,7 +362,7 @@ namespace RTMService.Services
 
 
             var resultChannel = GetChannelById(channelId).Result;
-            //var resultWorkspace = GetWorkspaceById(resultChannel.WorkspaceId).Result;
+            var resultWorkspace = GetWorkspaceById(resultChannel.WorkspaceId).Result;
             //var resultSender = GetUserByEmail(senderMail, resultWorkspace.WorkspaceName);
             Message newMessage = message;
             await _dbMessage.InsertOneAsync(newMessage);
@@ -329,6 +394,27 @@ namespace RTMService.Services
             // storing channel in cache
             string jsonStringChannel = JsonConvert.SerializeObject(cacheChannel);
             await cache.StringSetAsync($"{resultChannel.ChannelId}", jsonStringChannel);
+
+            //////////////////Notification Work/////////////////////////////////////
+           
+            foreach (var user in resultChannel.Users)
+            {
+                if(user.EmailId != senderMail)
+                {
+                    var stringifiedUserState = cache.StringGetAsync($"{user.EmailId}");
+
+                    var UserStateObject = JsonConvert.DeserializeObject<UserState>(stringifiedUserState.Result);
+                    UserStateObject.ListOfWorkspaceState.Find(w => w.WorkspaceName == resultWorkspace.WorkspaceName).
+                        ListOfChannelState.Find(c => c.channelId == channelId).UnreadMessageCount++;
+
+                    string jsonString = JsonConvert.SerializeObject(UserStateObject);
+                    await cache.StringSetAsync($"{user.EmailId}", jsonString);
+                }
+
+               
+            }
+            
+            //////////////////////////////////////////////////////////////////////////
             return newMessage;
 
         }
@@ -416,16 +502,69 @@ namespace RTMService.Services
             await _dbWorkSpace.UpdateOneAsync(filterWorkspace, updateWorkspace);
 
             var listOfDefaultChannels = resultWorkspace.DefaultChannels;
+            //make a new list of channels of channel state
+            List<ChannelState> listOfDefaultChannelState = new List<ChannelState>();
             foreach (var defaultChannel in listOfDefaultChannels)
             {
                 await AddUserToDefaultChannel(user, defaultChannel.ChannelId);
+
+                ChannelState channel = new ChannelState()
+                {
+                    channelId = defaultChannel.ChannelId,
+                    UnreadMessageCount = 0,
+                };
+                // add it to the list
+                listOfDefaultChannelState.Add(channel);
             }
             // get redis database and call it cache
             var cache = RedisConnectorHelper.Connection.GetDatabase();
 
             string jsonString = JsonConvert.SerializeObject(resultWorkspace);
             await cache.StringSetAsync($"{resultWorkspace.WorkspaceName}", jsonString);
-            ///////////
+
+            ///////////////Notification Work/////////////////////
+
+            var userstate = await GetUserStateByEmailId(user.EmailId);
+            if(userstate !=null)
+            {
+                WorkspaceState newWorkspace = new WorkspaceState()
+                {
+                    WorkspaceName = workspaceName,
+
+                };
+                foreach (var channel in listOfDefaultChannelState)
+                {
+                    newWorkspace.ListOfChannelState.Add(channel);
+                }
+                userstate.ListOfWorkspaceState.Add(newWorkspace);
+                string jsonStringUserState = JsonConvert.SerializeObject(userstate);
+                await cache.StringSetAsync($"{userstate.EmailId}", jsonStringUserState);
+            }
+            else
+            {
+                WorkspaceState newWorkspace = new WorkspaceState()
+                {
+                    WorkspaceName = workspaceName,
+
+                };
+                foreach (var channel in listOfDefaultChannelState)
+                {
+                    newWorkspace.ListOfChannelState.Add(channel);
+                }
+                UserState newUserState = new UserState()
+                {
+                    EmailId =user.EmailId,
+                };
+                newUserState.ListOfWorkspaceState.Add(newWorkspace);
+                await CreateNotificationStateOfUser(newUserState);
+                string jsonStringUserState = JsonConvert.SerializeObject(newUserState);
+                await cache.StringSetAsync($"{newUserState.EmailId}", jsonStringUserState);
+
+            }
+
+
+            ////////////////////////////////////////////////////////
+
             return user;
         }
         public async Task<string> GetChannelIdForOneToOneChat(string senderMail, string receiverMail, string workspaceId)

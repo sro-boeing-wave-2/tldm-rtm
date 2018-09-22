@@ -50,35 +50,46 @@ namespace RTMService.Hubs
             List<string> groups = new List<string>() { "foo" };
             Clients.Groups(groups).SendAsync("SendMessageToGroups", sender, message);
         }
-        public void SendWorkspaceObject(string workspaceName)
+        public void SendWorkspaceObject(string workspaceName, string userMail)
         {
-            var searchedWorkspace = iservice.GetWorkspaceByName(workspaceName).Result;
-            Clients.Clients(Context.ConnectionId).SendAsync("ReceiveUpdatedWorkspace", searchedWorkspace);
+            try
+            {
+                var searchedWorkspace = iservice.GetWorkspaceByName(workspaceName).Result;
+                var cache = RedisConnectorHelper.Connection.GetDatabase();
+                var stringifiedUserState = cache.StringGetAsync($"{userMail}");
+                var UserStateObject = JsonConvert.DeserializeObject<UserState>(stringifiedUserState.Result);
+                var workspaceStateObject = UserStateObject.ListOfWorkspaceState.
+                    Where(w => w.WorkspaceName == workspaceName).FirstOrDefault();
+                Clients.Clients(Context.ConnectionId).SendAsync("ReceiveUpdatedWorkspace", searchedWorkspace, workspaceStateObject);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+            }
+            
         }
         public void SendAllUserChannel(string emailId)
         {
             var listOfUserChannels = iservice.GetAllUserChannels(emailId).Result;
             Clients.All.SendAsync("ReceiveUserChannels", listOfUserChannels);
         }
-        public void SendMessageInChannel(string sender, Message message, string channelId)
-        //public void SendMessageInChannel(string sender, Message message, string channelId, string workspaceName)
+        //public void SendMessageInChannel(string sender, Message message, string channelId)
+        public void SendMessageInChannel(string sender, Message message, string channelId, string workspaceName)
         {
-            ///////////////////////////////////////////////////////////////////////////
-            //var cache = RedisConnectorHelper.Connection.GetDatabase();
+            //////////////////////Notification Work//////////////////////////////////////
+            var cache = RedisConnectorHelper.Connection.GetDatabase();
 
-            //var stringifiedUserState = cache.StringGetAsync($"{sender}");
-            //if (stringifiedUserState.Result.HasValue)
-            //{
-            //    var UserStateObject = JsonConvert.DeserializeObject<UserState>(stringifiedUserState.Result);
-            //    var workspaceStateObject = UserStateObject.ListOfWorkspaceState.
-            //        Where(w => w.WorkspaceName == workspaceName).FirstOrDefault();
-            //    workspaceStateObject.ListOfChannelState.Find(v => v.channelId == channelId).UnreadMessageCount++;
-            //    workspaceStateObject.ListOfChannelState.Find(v => v.channelId == channelId).LastTimestamp = message.Timestamp;
+            var stringifiedUserState = cache.StringGetAsync($"{sender}");
 
-            //    /*var nnn =*/ UserStateObject.ListOfWorkspaceState.Find(v => v.WorkspaceName == workspaceName) = workspaceStateObject;
-            //    string jsonString = JsonConvert.SerializeObject(UserStateObject);
-            //    cache.StringSetAsync($"{sender}", jsonString);
-            //}
+            var UserStateObject = JsonConvert.DeserializeObject<UserState>(stringifiedUserState.Result);
+            UserStateObject.ListOfWorkspaceState.Find(w => w.WorkspaceName == workspaceName).
+                ListOfChannelState.Find(c => c.channelId == channelId).UnreadMessageCount = 0;
+
+            UserStateObject.ListOfWorkspaceState.Find(w => w.WorkspaceName == workspaceName).
+                    ListOfChannelState.Find(c => c.channelId == channelId).LastTimestamp = message.Timestamp;
+            string jsonString = JsonConvert.SerializeObject(UserStateObject);
+            cache.StringSetAsync($"{sender}", jsonString);
+
             ///////////////////////////////////////////////////////////////////////////////
             Groups.AddToGroupAsync(Context.ConnectionId, channelId);
             var newMessage = iservice.AddMessageToChannel(message, channelId, sender).Result;
@@ -126,51 +137,29 @@ namespace RTMService.Hubs
 
         }
 
-        //public WorkspaceState GetNotificationsForChannelsInWorkspace(string workspaceName, string emailId,string channelId, DateTime LastTimeStamp)
-        //{
-        //    try
-        //    {
-        //        var cache = RedisConnectorHelper.Connection.GetDatabase();
+        public WorkspaceState GetNotificationsForChannelsInWorkspace(string workspaceName, string emailId, string channelId, DateTime LastTimeStamp)
+        {
+            try
+            {
+                var cache = RedisConnectorHelper.Connection.GetDatabase();
 
-        //        var stringifiedUserState = cache.StringGetAsync($"{emailId}");
+                var stringifiedUserState = cache.StringGetAsync($"{emailId}");
 
-        //            var UserStateObject = JsonConvert.DeserializeObject<UserState>(stringifiedUserState.Result);
-        //            var workspaceStateObject = UserStateObject.ListOfWorkspaceState.
-        //                Where(w => w.WorkspaceName == workspaceName).FirstOrDefault();
-        //            workspaceStateObject.ListOfChannelState.Find(v => v.channelId == channelId).UnreadMessageCount = 0;
-        //            workspaceStateObject.ListOfChannelState.Find(v => v.channelId == channelId).LastTimestamp = LastTimeStamp;
-        //            return workspaceStateObject;
+                var UserStateObject = JsonConvert.DeserializeObject<UserState>(stringifiedUserState.Result);
+                var workspaceStateObject = UserStateObject.ListOfWorkspaceState.
+                    Where(w => w.WorkspaceName == workspaceName).FirstOrDefault();
+                workspaceStateObject.ListOfChannelState.Find(v => v.channelId == channelId).UnreadMessageCount = 0;
+                workspaceStateObject.ListOfChannelState.Find(v => v.channelId == channelId).LastTimestamp = LastTimeStamp;
+                return workspaceStateObject;
 
 
-        //    }
-        //    catch
-        //    {
-        //        var cache = RedisConnectorHelper.Connection.GetDatabase();
-        //        ChannelState channel = new ChannelState()
-        //        {
-        //            channelId = channelId,
-        //            UnreadMessageCount = 0,
-        //            LastTimestamp = LastTimeStamp
-        //        };
+            }
+            catch(Exception e)
+            {
+                Console.WriteLine(e.Message);
+                return null;
+            }
 
-        //        WorkspaceState newWorkspace = new WorkspaceState()
-        //        {
-        //            WorkspaceName = workspaceName,
-
-        //        };
-        //        newWorkspace.ListOfChannelState.Add(channel);
-        //        UserState userState = new UserState()
-        //        {
-        //            EmailId = emailId,
-        //        };
-        //        userState.ListOfWorkspaceState.Add(newWorkspace);
-        //        iservice.CreateNotificationStateOfUser(userState);
-        //        string jsonString = JsonConvert.SerializeObject(userState);
-        //        cache.StringSetAsync($"{emailId}", jsonString);
-        //        return newWorkspace;
-
-        //    }
-
-        //}
+        }
     }
 }

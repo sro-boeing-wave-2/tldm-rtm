@@ -50,7 +50,8 @@ namespace RTMService.Services
         Task<Message> AddMessageToChannel(Message message, string channelId, string senderMail);
         ////Task DeleteMessageInChannel(string workspaceName, int channelId, int messageId);
 
-        //Task CreateNotificationStateOfUser(UserState userState);
+        Task CreateNotificationStateOfUser(UserState userState);
+        Task<UserState> GetUserStateByEmailId(string emailId);
 
     }
 }

@@ -8,18 +8,18 @@ services:
     depends_on:
       - db
       - redis
-    # labels:
-    #  - "SERVICE_NAME=rtm-service"
-    #  - "SERVICE_TAG=rtm-serviceTag"
-    # expose:
-    #  - "5004"
+    labels:
+     - "SERVICE_80_NAME=rtm-service"
+     - "SERVICE_TAG=rtm-serviceTag"
+    expose:
+     - "5004"
   db:
     image: "mongo:latest"
     container_name: mongodbnew
-    ports:
-      - "27018:27017"
+    # ports:
+    #   - "27018:27017"
   redis:
     image: "redis:alpine"
     container_name: redisnew
-    ports:
-      - "6379:6379"
+    # ports:
+    #   - "6379:6379"

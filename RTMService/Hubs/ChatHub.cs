@@ -137,7 +137,7 @@ namespace RTMService.Hubs
 
         }
 
-        public WorkspaceState GetNotificationsForChannelsInWorkspace(string workspaceName, string emailId, string channelId, DateTime LastTimeStamp)
+        public void GetNotificationsForChannelsInWorkspace(string workspaceName, string emailId, string channelId, DateTime LastTimeStamp)
         {
             try
             {
@@ -146,20 +146,29 @@ namespace RTMService.Hubs
                 var stringifiedUserState = cache.StringGetAsync($"{emailId}");
 
                 var UserStateObject = JsonConvert.DeserializeObject<UserState>(stringifiedUserState.Result);
-                var workspaceStateObject = UserStateObject.ListOfWorkspaceState.
-                    Where(w => w.WorkspaceName == workspaceName).FirstOrDefault();
-                workspaceStateObject.ListOfChannelState.Find(v => v.channelId == channelId).UnreadMessageCount = 0;
-                workspaceStateObject.ListOfChannelState.Find(v => v.channelId == channelId).LastTimestamp = LastTimeStamp;
-                return workspaceStateObject;
+                UserStateObject.ListOfWorkspaceState.Find(w => w.WorkspaceName == workspaceName).
+                ListOfChannelState.Find(c => c.channelId == channelId).UnreadMessageCount = 0;
 
+                UserStateObject.ListOfWorkspaceState.Find(w => w.WorkspaceName == workspaceName).
+                        ListOfChannelState.Find(c => c.channelId == channelId).LastTimestamp = LastTimeStamp;
+                //workspaceStateObject.ListOfChannelState.Find(v => v.channelId == channelId).UnreadMessageCount = 0;
+                //workspaceStateObject.ListOfChannelState.Find(v => v.channelId == channelId).LastTimestamp = LastTimeStamp;
+                //return workspaceStateObject;
+                string jsonString = JsonConvert.SerializeObject(UserStateObject);
+                cache.StringSetAsync($"{emailId}", jsonString);
 
             }
             catch(Exception e)
             {
                 Console.WriteLine(e.Message);
-                return null;
+               // return null;
             }
 
+        }
+        public void whoistyping(string channelId, string name)
+        {
+            Clients.OthersInGroup(channelId).SendAsync("whoistyping", name + " is typing");
+            //Clients.Others.SendAsync("whoistyping",name +" is typing");
         }
     }
 }

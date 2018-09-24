@@ -26,8 +26,8 @@ namespace RTMService.Services
         public ChatService()
         {
             // creating mongodb collection for all required models
-            _client = new MongoClient("mongodb://localhost:27017");
-           // _client = new MongoClient("mongodb://db/admindatabase");
+           //_client = new MongoClient("mongodb://localhost:27017");
+            _client = new MongoClient("mongodb://db/admindatabase");
             _server = _client.GetServer();
             _dbWorkSpace = _client.GetDatabase("AllWorkspace").GetCollection<Workspace>("Workspace");
             _dbChannel = _client.GetDatabase("AllChannels").GetCollection<Channel>("Channel");
@@ -146,7 +146,9 @@ namespace RTMService.Services
             ///////////////Notification Work/////////////////////
             foreach(var user in channel.Users)
             {
-                var userstate = await GetUserStateByEmailId(user.EmailId);
+                //
+                var stringifiedUserState = cache.StringGetAsync($"{user.EmailId}");
+                var userstate = JsonConvert.DeserializeObject<UserState>(stringifiedUserState.Result);
                 ChannelState channelState = new ChannelState()
                 {
                     channelId = channel.ChannelId,
@@ -155,6 +157,12 @@ namespace RTMService.Services
                 userstate.ListOfWorkspaceState.Find(w => w.WorkspaceName == workspaceName).ListOfChannelState.Add(channelState);
                 string jsonStringUserState = JsonConvert.SerializeObject(userstate);
                 await cache.StringSetAsync($"{userstate.EmailId}", jsonStringUserState);
+                //updating in mongo
+                var filterUserState = new FilterDefinitionBuilder<UserState>().Where(r => r.EmailId == user.EmailId);
+                var updateUserState = Builders<UserState>.Update
+                    .Set(r => r.ListOfWorkspaceState, userstate.ListOfWorkspaceState);
+                await _dbNotificationUserState.UpdateOneAsync(filterUserState, updateUserState);
+
             }
 
 
@@ -193,8 +201,9 @@ namespace RTMService.Services
             await cache.StringSetAsync($"{channel.ChannelId}", jsonString);
 
             ///////////////Notification Work/////////////////////
-
-            var userstate = await GetUserStateByEmailId(channel.Users[0].EmailId);
+            var stringifiedUserState = cache.StringGetAsync($"{channel.Users[0].EmailId}");
+            var userstate = JsonConvert.DeserializeObject<UserState>(stringifiedUserState.Result);
+            //var userstate = await GetUserStateByEmailId(channel.Users[0].EmailId);
             ChannelState channelState = new ChannelState()
             {
                 channelId = channel.ChannelId,
@@ -203,11 +212,15 @@ namespace RTMService.Services
             userstate.ListOfWorkspaceState.Find(w => w.WorkspaceName == workspaceName).ListOfChannelState.Add(channelState);
             string jsonStringUserState = JsonConvert.SerializeObject(userstate);
             await cache.StringSetAsync($"{userstate.EmailId}", jsonStringUserState);
-            //var filter = new FilterDefinitionBuilder<UserState>().Where(r => r.EmailId == userstate.EmailId);
-            //await _dbNotificationUserState.ReplaceOneAsync(filter, userstate);
-            var u1 = userstate;
-            u1.ListOfWorkspaceState = userstate.ListOfWorkspaceState;
-            var userstate1 = await GetUserStateByEmailId(channel.Users[1].EmailId);
+            //updating in mongo
+            var filterUserState = new FilterDefinitionBuilder<UserState>().Where(r => r.EmailId == channel.Users[0].EmailId);
+            var updateUserState = Builders<UserState>.Update
+                .Set(r => r.ListOfWorkspaceState, userstate.ListOfWorkspaceState);
+            await _dbNotificationUserState.UpdateOneAsync(filterUserState, updateUserState);
+            /////
+            var stringifiedUserState1 = cache.StringGetAsync($"{channel.Users[1].EmailId}");
+            var userstate1 = JsonConvert.DeserializeObject<UserState>(stringifiedUserState1.Result);
+            //var userstate1 = await GetUserStateByEmailId(channel.Users[1].EmailId);
             ChannelState channelState1 = new ChannelState()
             {
                 channelId = channel.ChannelId,
@@ -216,11 +229,12 @@ namespace RTMService.Services
             userstate1.ListOfWorkspaceState.Find(w => w.WorkspaceName == workspaceName).ListOfChannelState.Add(channelState1);
             string jsonStringUserState1 = JsonConvert.SerializeObject(userstate1);
             await cache.StringSetAsync($"{userstate1.EmailId}", jsonStringUserState1);
-            var u2 = userstate1;
-            u2.ListOfWorkspaceState = userstate1.ListOfWorkspaceState;
-            //var filter1 = new FilterDefinitionBuilder<UserState>().Where(r => r.EmailId == userstate.EmailId);
-            //await _dbNotificationUserState.ReplaceOneAsync(filter1, userstate1);
-
+            //updating in mongo
+            var filterUserState1 = new FilterDefinitionBuilder<UserState>().Where(r => r.EmailId == channel.Users[1].EmailId);
+            var updateUserState1 = Builders<UserState>.Update
+                .Set(r => r.ListOfWorkspaceState, userstate1.ListOfWorkspaceState);
+            await _dbNotificationUserState.UpdateOneAsync(filterUserState1, updateUserState1);
+            /////
             ////////////////////////////////////////////////////////
             return channel;
         }
@@ -278,8 +292,9 @@ namespace RTMService.Services
             await cache.StringSetAsync($"{resultChannel.ChannelId}", jsonStringChannel);
             ///////////
             ///////////////Notification Work/////////////////////
-
-            var userstate = await GetUserStateByEmailId(newUser.EmailId);
+            var stringifiedUserState = cache.StringGetAsync($"{newUser.EmailId}");
+            var userstate = JsonConvert.DeserializeObject<UserState>(stringifiedUserState.Result);
+            //var userstate = await GetUserStateByEmailId(newUser.EmailId);
             ChannelState channel = new ChannelState()
             {
                 channelId = channelId,
@@ -288,7 +303,11 @@ namespace RTMService.Services
             userstate.ListOfWorkspaceState.Find(w => w.WorkspaceName == resultWorkspace.WorkspaceName).ListOfChannelState.Add(channel);
             string jsonStringUserState = JsonConvert.SerializeObject(userstate);
             await cache.StringSetAsync($"{userstate.EmailId}", jsonStringUserState);
-
+            //updating in mongo
+            var filterUserState = new FilterDefinitionBuilder<UserState>().Where(r => r.EmailId == newUser.EmailId);
+            var updateUserState = Builders<UserState>.Update
+                .Set(r => r.ListOfWorkspaceState, userstate.ListOfWorkspaceState);
+            await _dbNotificationUserState.UpdateOneAsync(filterUserState, updateUserState);
             ////////////////////////////////////////////////////////
 
             return newUser;
@@ -519,8 +538,8 @@ namespace RTMService.Services
             // get redis database and call it cache
             var cache = RedisConnectorHelper.Connection.GetDatabase();
 
-            string jsonString = JsonConvert.SerializeObject(resultWorkspace);
-            await cache.StringSetAsync($"{resultWorkspace.WorkspaceName}", jsonString);
+            //string jsonString = JsonConvert.SerializeObject(resultWorkspace);
+            //await cache.StringSetAsync($"{resultWorkspace.WorkspaceName}", jsonString);
 
             ///////////////Notification Work/////////////////////
 

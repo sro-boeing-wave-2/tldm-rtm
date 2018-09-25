@@ -25,15 +25,29 @@ namespace RTMService.Services
         // constructor for chat service
         public ChatService()
         {
-            // creating mongodb collection for all required models
+            // for running the application in local machine
            //_client = new MongoClient("mongodb://localhost:27017");
+           
+            // for running the application in docker
             _client = new MongoClient("mongodb://db/admindatabase");
+
+            // starting Mongo Server 
+            // Stop using this version as it is obsolete
             _server = _client.GetServer();
+            
+            // creating mongodb collection for all required models
+
+            // Workspace Collection
             _dbWorkSpace = _client.GetDatabase("AllWorkspace").GetCollection<Workspace>("Workspace");
+            // Channel Collection
             _dbChannel = _client.GetDatabase("AllChannels").GetCollection<Channel>("Channel");
+            // User Collection
             _dbUser = _client.GetDatabase("AllUsers").GetCollection<User>("User");
+            // Message Collection
             _dbMessage = _client.GetDatabase("AllMessages").GetCollection<Message>("Message");
+            // One to One Collection
             _dbOneToOne = _client.GetDatabase("OneToOneTable").GetCollection<OneToOneChannelInfo>("OneToOne");
+            // User State and Notification Collection
             _dbNotificationUserState = _client.GetDatabase("Notification").GetCollection<UserState>("UserState");
         }
 
@@ -46,7 +60,6 @@ namespace RTMService.Services
         // search workspace by workspace id from database 
         public async Task<Workspace> GetWorkspaceById(string id)
         {
-
             return await _dbWorkSpace.Find(w => w.WorkspaceId == id).FirstOrDefaultAsync();
         }
 
@@ -55,6 +68,7 @@ namespace RTMService.Services
         {
             // get redis database and call it cache 
             var cache = RedisConnectorHelper.Connection.GetDatabase();
+
             // get workspace object as string value with key workspace name
             var stringifiedWorkspace = cache.StringGetAsync($"{workspaceName}");
             if (stringifiedWorkspace.Result.HasValue)
@@ -63,10 +77,13 @@ namespace RTMService.Services
                 var workspaceObject = JsonConvert.DeserializeObject<Workspace>(stringifiedWorkspace.Result);
                 return workspaceObject;
             }
+
             // find workspace from database
             var Workspace = _dbWorkSpace.Find(w => w.WorkspaceName == workspaceName).FirstOrDefaultAsync();
+
             // convert it into string
             string jsonString = JsonConvert.SerializeObject(Workspace.Result);
+
             // store it in cache
             await cache.StringSetAsync($"{workspaceName}", jsonString);
 
@@ -75,7 +92,7 @@ namespace RTMService.Services
 
 
         }
-        //changed
+        // Insert a document for user in notification collection
         public async Task CreateNotificationStateOfUser(UserState userState)
         {
             await _dbNotificationUserState.InsertOneAsync(userState);
@@ -85,6 +102,7 @@ namespace RTMService.Services
         {
             return await _dbNotificationUserState.Find(w => w.EmailId == emailId).FirstOrDefaultAsync();
         }
+        // Create a new Workspace using workspace view
         public async Task<Workspace> CreateWorkspace(WorkspaceView workSpace)
         {
             Workspace newWorkspace = new Workspace
@@ -94,7 +112,8 @@ namespace RTMService.Services
             };
 
             await _dbWorkSpace.InsertOneAsync(newWorkspace);
-            //creating default channels
+
+            //creating default channels in workspace 
             foreach (var channel in workSpace.Channels)
             {
                 Channel newChannel = new Channel
@@ -119,120 +138,201 @@ namespace RTMService.Services
 
             return await GetWorkspaceById(newWorkspace.WorkspaceId);
         }
+        // delete a workspace from collection by workspace Id
         public async Task DeleteWorkspace(string id)
         {
-
             await _dbWorkSpace.DeleteOneAsync(w => w.WorkspaceId == id);
+            // update redis cache with deleted workpsace 
+            // NOT Implemented!!!!!!!!!!!!
         }
-
+        // Create a channel in workspace 
         public async Task<Channel> CreateChannel(Channel channel, string workspaceName)
         {
+            // Search the workspace in which channel needs to be added 
             var searchedWorkspace = GetWorkspaceByName(workspaceName).Result;
+
+            // update channel with the workspace id to complete the model
             channel.WorkspaceId = searchedWorkspace.WorkspaceId;
+
+            // insert the document in mongo collection
             await _dbChannel.InsertOneAsync(channel);
+
+            // search workspace by ID  (may not need this, CHECK!!!!!)
             var result = GetWorkspaceById(searchedWorkspace.WorkspaceId).Result;
+
+            // add channel to channel list of workpsace 
             result.Channels.Add(channel);
+
+            // make sure the workspace id is same 
             result.WorkspaceId = searchedWorkspace.WorkspaceId;
+
+            //Apply the filer to the collection
             var filter = new FilterDefinitionBuilder<Workspace>().Where(r => r.WorkspaceId == result.WorkspaceId);
+           
+            // replace the document in collection
             await _dbWorkSpace.ReplaceOneAsync(filter, result);
+
             // get redis database and call it cache
             var cache = RedisConnectorHelper.Connection.GetDatabase();
 
+            // convert workspace object into string
             string jsonString = JsonConvert.SerializeObject(result);
+
+            // update the key value pair of workpsace in cache
             await cache.StringSetAsync($"{workspaceName}", jsonString);
+
+            // convert channel object to string
             string jsonStringChannel = JsonConvert.SerializeObject(channel);
+
+            // update key value pair of channel in cache
             await cache.StringSetAsync($"{channel.ChannelId}", jsonStringChannel);
-            ///////////
+
             ///////////////Notification Work/////////////////////
+            // iterate over all users in a channel
             foreach(var user in channel.Users)
             {
-                //
+                // get user state from the cache 
                 var stringifiedUserState = cache.StringGetAsync($"{user.EmailId}");
+
+                // convert the result string to user state object 
                 var userstate = JsonConvert.DeserializeObject<UserState>(stringifiedUserState.Result);
+
+                // create a new channel state 
                 ChannelState channelState = new ChannelState()
                 {
                     channelId = channel.ChannelId,
                     UnreadMessageCount = 0
                 };
+
+                // add new channel to the workspace inside the user state
                 userstate.ListOfWorkspaceState.Find(w => w.WorkspaceName == workspaceName).ListOfChannelState.Add(channelState);
+
+                //convert the object back to string
                 string jsonStringUserState = JsonConvert.SerializeObject(userstate);
+                
+                // update the user state inside cache
                 await cache.StringSetAsync($"{userstate.EmailId}", jsonStringUserState);
-                //updating in mongo
+                
+                //updating in mongo the user state for safety and debugging
                 var filterUserState = new FilterDefinitionBuilder<UserState>().Where(r => r.EmailId == user.EmailId);
+
                 var updateUserState = Builders<UserState>.Update
                     .Set(r => r.ListOfWorkspaceState, userstate.ListOfWorkspaceState);
+
                 await _dbNotificationUserState.UpdateOneAsync(filterUserState, updateUserState);
 
             }
-
-
             ////////////////////////////////////////////////////////
             return channel;
         }
+        // Creating a default channel
         public async Task<Channel> CreateDefaultChannel(Channel channel, string workspaceName)
         {
-
+            // search workspace by name
             var searchedWorkspace = GetWorkspaceByName(workspaceName).Result;
+
+            // set the workspace id inside channel
             channel.WorkspaceId = searchedWorkspace.WorkspaceId;
+
+            // insert the document inside channel collection
             await _dbChannel.InsertOneAsync(channel);
+
+            //search workspace by id (may not need this , CHECK!!!!!!!)
             var result = GetWorkspaceById(searchedWorkspace.WorkspaceId).Result;
+
+            // add default channel to workspace
             result.DefaultChannels.Add(channel);
+
+            // // make sure the workspace id is same 
             result.WorkspaceId = searchedWorkspace.WorkspaceId;
+
+            //Apply the filer to the collection
             var filter = new FilterDefinitionBuilder<Workspace>().Where(r => r.WorkspaceId == result.WorkspaceId);
+
+            // replace the document in mongo
             await _dbWorkSpace.ReplaceOneAsync(filter, result);
-            ////// get redis database and call it cache
+            
+            // get redis database and call it cache
             var cache = RedisConnectorHelper.Connection.GetDatabase();
 
+            // convert workspace object to string
             string jsonString = JsonConvert.SerializeObject(result);
+
+            //update it in cache
             await cache.StringSetAsync($"{workspaceName}", jsonString);
             ///////////
             return channel;
         }
+        // create a channel for on to one communication
         public async Task<Channel> CreateOneToOneChannel(Channel channel, string workspaceName)
         {
-
+            // search workspace by name 
             var searchedWorkspace = GetWorkspaceByName(workspaceName).Result;
+
+            // set workpsace id inside channel id
             channel.WorkspaceId = searchedWorkspace.WorkspaceId;
+
+            // insert the channel in mongo collection
             await _dbChannel.InsertOneAsync(channel);
-            //// get redis database and call it cache
+
+            // get redis database and call it cache
             var cache = RedisConnectorHelper.Connection.GetDatabase();
+
             //changed
             string jsonString = JsonConvert.SerializeObject(channel);
             await cache.StringSetAsync($"{channel.ChannelId}", jsonString);
 
             ///////////////Notification Work/////////////////////
             var stringifiedUserState = cache.StringGetAsync($"{channel.Users[0].EmailId}");
+
             var userstate = JsonConvert.DeserializeObject<UserState>(stringifiedUserState.Result);
             //var userstate = await GetUserStateByEmailId(channel.Users[0].EmailId);
+
             ChannelState channelState = new ChannelState()
             {
                 channelId = channel.ChannelId,
                 UnreadMessageCount = 0
             };
+
             userstate.ListOfWorkspaceState.Find(w => w.WorkspaceName == workspaceName).ListOfChannelState.Add(channelState);
+
             string jsonStringUserState = JsonConvert.SerializeObject(userstate);
+
             await cache.StringSetAsync($"{userstate.EmailId}", jsonStringUserState);
+            
             //updating in mongo
+
             var filterUserState = new FilterDefinitionBuilder<UserState>().Where(r => r.EmailId == channel.Users[0].EmailId);
+
             var updateUserState = Builders<UserState>.Update
                 .Set(r => r.ListOfWorkspaceState, userstate.ListOfWorkspaceState);
+
             await _dbNotificationUserState.UpdateOneAsync(filterUserState, updateUserState);
             /////
+
             var stringifiedUserState1 = cache.StringGetAsync($"{channel.Users[1].EmailId}");
+
             var userstate1 = JsonConvert.DeserializeObject<UserState>(stringifiedUserState1.Result);
             //var userstate1 = await GetUserStateByEmailId(channel.Users[1].EmailId);
+
             ChannelState channelState1 = new ChannelState()
             {
                 channelId = channel.ChannelId,
                 UnreadMessageCount = 0
             };
+
             userstate1.ListOfWorkspaceState.Find(w => w.WorkspaceName == workspaceName).ListOfChannelState.Add(channelState1);
+
             string jsonStringUserState1 = JsonConvert.SerializeObject(userstate1);
+
             await cache.StringSetAsync($"{userstate1.EmailId}", jsonStringUserState1);
             //updating in mongo
+
             var filterUserState1 = new FilterDefinitionBuilder<UserState>().Where(r => r.EmailId == channel.Users[1].EmailId);
+
             var updateUserState1 = Builders<UserState>.Update
                 .Set(r => r.ListOfWorkspaceState, userstate1.ListOfWorkspaceState);
+
             await _dbNotificationUserState.UpdateOneAsync(filterUserState1, updateUserState1);
             /////
             ////////////////////////////////////////////////////////
@@ -244,6 +344,7 @@ namespace RTMService.Services
             var cache = RedisConnectorHelper.Connection.GetDatabase();
 
             var stringifiedChannel = cache.StringGetAsync($"{channelId}");
+
             if (stringifiedChannel.Result.HasValue)
             {
                 var channelObject = JsonConvert.DeserializeObject<Channel>(stringifiedChannel.Result);
@@ -254,7 +355,9 @@ namespace RTMService.Services
 
 
             var Channel = _dbChannel.Find(w => w.ChannelId == channelId).FirstOrDefaultAsync();
+
             string jsonString = JsonConvert.SerializeObject(Channel.Result);
+
             await cache.StringSetAsync($"{channelId}", jsonString);
 
             return await Channel;
@@ -266,47 +369,67 @@ namespace RTMService.Services
 
             // add user to channel and updating channel
             var resultChannel = GetChannelById(channelId).Result;
+
             resultChannel.Users.Add(newUser);
+
             resultChannel.ChannelId = channelId;
+
             var filter = new FilterDefinitionBuilder<Channel>().Where(r => r.ChannelId == resultChannel.ChannelId);
+
             var update = Builders<Channel>.Update
                 .Set(r => r.ChannelId, resultChannel.ChannelId)
                 .Set(r => r.Users, resultChannel.Users);
+
             await _dbChannel.UpdateOneAsync(filter, update);
 
             // update channel in workspace
             var resultWorkspace = GetWorkspaceById(resultChannel.WorkspaceId).Result;
+
             resultWorkspace.Channels.First(i => i.ChannelId == channelId).Users.Add(newUser);
+
             var filterWorkspace = new FilterDefinitionBuilder<Workspace>().Where(r => r.WorkspaceId == resultChannel.WorkspaceId);
+
             var updateWorkspace = Builders<Workspace>.Update
                 .Set(r => r.Channels, resultWorkspace.Channels)
                 .Set(r => r.WorkspaceId, resultChannel.WorkspaceId);
+
             await _dbWorkSpace.UpdateOneAsync(filterWorkspace, updateWorkspace);
             //// get redis database and call it cache
+
             var cache = RedisConnectorHelper.Connection.GetDatabase();
 
             string jsonStringWorkspace = JsonConvert.SerializeObject(resultWorkspace);
+
             await cache.StringSetAsync($"{resultWorkspace.WorkspaceName}", jsonStringWorkspace);
             // storing channel in cache
+
             string jsonStringChannel = JsonConvert.SerializeObject(resultChannel);
+
             await cache.StringSetAsync($"{resultChannel.ChannelId}", jsonStringChannel);
             ///////////
             ///////////////Notification Work/////////////////////
             var stringifiedUserState = cache.StringGetAsync($"{newUser.EmailId}");
+
             var userstate = JsonConvert.DeserializeObject<UserState>(stringifiedUserState.Result);
             //var userstate = await GetUserStateByEmailId(newUser.EmailId);
+
             ChannelState channel = new ChannelState()
             {
                 channelId = channelId,
                 UnreadMessageCount = 0
             };
             userstate.ListOfWorkspaceState.Find(w => w.WorkspaceName == resultWorkspace.WorkspaceName).ListOfChannelState.Add(channel);
+
             string jsonStringUserState = JsonConvert.SerializeObject(userstate);
+
             await cache.StringSetAsync($"{userstate.EmailId}", jsonStringUserState);
             //updating in mongo
+
             var filterUserState = new FilterDefinitionBuilder<UserState>().Where(r => r.EmailId == newUser.EmailId);
+
             var updateUserState = Builders<UserState>.Update
                 .Set(r => r.ListOfWorkspaceState, userstate.ListOfWorkspaceState);
+
             await _dbNotificationUserState.UpdateOneAsync(filterUserState, updateUserState);
             ////////////////////////////////////////////////////////
 
@@ -318,30 +441,45 @@ namespace RTMService.Services
 
             // add user to default channel and updating channel
             var resultChannel = GetChannelById(channelId).Result;
+
             resultChannel.Users.Add(newUser);
             //resultChannel.Admin = newUser;
+
             resultChannel.ChannelId = channelId;
+
             var filter = new FilterDefinitionBuilder<Channel>().Where(r => r.ChannelId == resultChannel.ChannelId);
+
             var update = Builders<Channel>.Update
                 .Set(r => r.ChannelId, resultChannel.ChannelId)
                 .Set(r => r.Users, resultChannel.Users);
+
             await _dbChannel.UpdateOneAsync(filter, update);
 
             var resultWorkspace = GetWorkspaceById(resultChannel.WorkspaceId).Result;
+
             resultWorkspace.DefaultChannels.First(i => i.ChannelId == channelId).Users.Add(newUser);
+
             var filterWorkspace = new FilterDefinitionBuilder<Workspace>().Where(r => r.WorkspaceId == resultChannel.WorkspaceId);
+
             var updateWorkspace = Builders<Workspace>.Update
                 .Set(r => r.DefaultChannels, resultWorkspace.DefaultChannels)
                 .Set(r => r.WorkspaceId, resultChannel.WorkspaceId);
+
             await _dbWorkSpace.UpdateOneAsync(filterWorkspace, updateWorkspace);
             //// get redis database and call it cache
+
             var cache = RedisConnectorHelper.Connection.GetDatabase();
 
+
             string jsonStringWorkspace = JsonConvert.SerializeObject(resultWorkspace);
+
             await cache.StringSetAsync($"{resultWorkspace.WorkspaceName}", jsonStringWorkspace);
             // storing channel in cache
+
             string jsonStringChannel = JsonConvert.SerializeObject(resultChannel);
+
             await cache.StringSetAsync($"{resultChannel.ChannelId}", jsonStringChannel);
+            
             ///////////
             return newUser;
 
@@ -350,7 +488,9 @@ namespace RTMService.Services
         {
 
             var listOfChannels = await _dbChannel.Find(p => (p.ChannelName != "") && (p.Users.Any(u => u.EmailId == emailId))).ToListAsync();
+
             List<string> listOfChannelIds = new List<string>();
+
             foreach (var channel in listOfChannels)
             {
                 listOfChannelIds.Add(channel.ChannelId);
@@ -361,7 +501,9 @@ namespace RTMService.Services
         public async Task<List<Message>> GetLastNMessagesOfChannel(string channelId, int N)
         {
             var listOfMessages = await  _dbMessage.Find(m => m.ChannelId==channelId).ToListAsync();
+
             var sortedMessages = listOfMessages.OrderBy(m => m.Timestamp).ToList();
+
             if (N < sortedMessages.Count())
             {
                 var list = sortedMessages.Skip(sortedMessages.Count() - N).Take(10).ToList();
@@ -381,14 +523,18 @@ namespace RTMService.Services
 
 
             var resultChannel = GetChannelById(channelId).Result;
+
             var resultWorkspace = GetWorkspaceById(resultChannel.WorkspaceId).Result;
             //var resultSender = GetUserByEmail(senderMail, resultWorkspace.WorkspaceName);
+
             Message newMessage = message;
+
             await _dbMessage.InsertOneAsync(newMessage);
            
             resultChannel.Messages.Add(newMessage);
 
             var lastmessages = resultChannel.Messages.Skip(Math.Max(0, resultChannel.Messages.Count() - 50)).ToList();
+
             Channel cacheChannel = new Channel()
             {
                 Messages = lastmessages,
@@ -402,36 +548,48 @@ namespace RTMService.Services
             //cacheChannel.Messages = lastmessages;
             ///////////////////////////
             resultChannel.ChannelId = channelId;
+
             var filter = new FilterDefinitionBuilder<Channel>().Where(r => r.ChannelId == resultChannel.ChannelId);
+
             var update = Builders<Channel>.Update
                 .Set(r => r.ChannelId, resultChannel.ChannelId)
                 .Set(r => r.Messages, resultChannel.Messages);
+
             await _dbChannel.UpdateOneAsync(filter, update);
             // get redis database and call it cache
+
             var cache = RedisConnectorHelper.Connection.GetDatabase();
             //changed
             // storing channel in cache
+
             string jsonStringChannel = JsonConvert.SerializeObject(cacheChannel);
             await cache.StringSetAsync($"{resultChannel.ChannelId}", jsonStringChannel);
 
             //////////////////Notification Work/////////////////////////////////////
-           
-            foreach (var user in resultChannel.Users)
+           try
             {
-                if(user.EmailId != senderMail)
+                foreach (var user in resultChannel.Users)
                 {
-                    var stringifiedUserState = cache.StringGetAsync($"{user.EmailId}");
+                    if (user.EmailId != senderMail)
+                    {
+                        var stringifiedUserState = cache.StringGetAsync($"{user.EmailId}");
 
-                    var UserStateObject = JsonConvert.DeserializeObject<UserState>(stringifiedUserState.Result);
-                    UserStateObject.ListOfWorkspaceState.Find(w => w.WorkspaceName == resultWorkspace.WorkspaceName).
-                        ListOfChannelState.Find(c => c.channelId == channelId).UnreadMessageCount++;
+                        var UserStateObject = JsonConvert.DeserializeObject<UserState>(stringifiedUserState.Result);
+                        UserStateObject.ListOfWorkspaceState.Find(w => w.WorkspaceName == resultWorkspace.WorkspaceName).
+                            ListOfChannelState.Find(c => c.channelId == channelId).UnreadMessageCount++;
 
-                    string jsonString = JsonConvert.SerializeObject(UserStateObject);
-                    await cache.StringSetAsync($"{user.EmailId}", jsonString);
+                        string jsonString = JsonConvert.SerializeObject(UserStateObject);
+                        await cache.StringSetAsync($"{user.EmailId}", jsonString);
+                    }
+
+
                 }
-
-               
             }
+            catch(Exception e)
+            {
+                Console.Write(e.Message);
+            }
+            
             
             //////////////////////////////////////////////////////////////////////////
             return newMessage;
@@ -441,13 +599,21 @@ namespace RTMService.Services
         public async Task DeleteChannel(string channelId)
         {
             var channelresult = GetChannelById(channelId).Result;
+
             await _dbChannel.DeleteOneAsync(w => w.ChannelId == channelId);
+
             var workspace = GetWorkspaceById(channelresult.WorkspaceId).Result;
+
             var channelToDelete = workspace.Channels.Find(c => c.ChannelId == channelId);
+
             var defaultChannelToDelete = workspace.DefaultChannels.Find(c => c.ChannelId == channelId);
+
             workspace.Channels.Remove(channelToDelete);
+
             workspace.DefaultChannels.Remove(defaultChannelToDelete);
+
             var filterWorkspace = new FilterDefinitionBuilder<Workspace>().Where(r => r.WorkspaceId == channelresult.WorkspaceId);
+
             var updateWorkspace = Builders<Workspace>.Update
                 .Set(r => r.DefaultChannels, workspace.DefaultChannels)
                 .Set(r => r.Channels, workspace.Channels)
@@ -456,8 +622,10 @@ namespace RTMService.Services
             var cache = RedisConnectorHelper.Connection.GetDatabase();
 
             string jsonString = JsonConvert.SerializeObject(workspace);
+
             await cache.StringSetAsync($"{workspace.WorkspaceName}", jsonString);
             ///////////
+
             await _dbWorkSpace.UpdateOneAsync(filterWorkspace, updateWorkspace);
 
         }
@@ -468,29 +636,50 @@ namespace RTMService.Services
             var resultUser = channel.Users.Find(u => u.EmailId == emailId);//GetUserByEmail(emailId);
 
             channel.Users.Remove(resultUser);
+
             channel.ChannelId = channelId;
             var filter = new FilterDefinitionBuilder<Channel>().Where(r => r.ChannelId == channel.ChannelId);
+
             var update = Builders<Channel>.Update
                 .Set(r => r.ChannelId, channel.ChannelId)
                 .Set(r => r.Users, channel.Users);
+
             await _dbChannel.UpdateOneAsync(filter, update);
 
+
             var resultWorkspace = GetWorkspaceById(channel.WorkspaceId).Result;
+
             resultWorkspace.WorkspaceId = channel.WorkspaceId;
-            var userToDelete = resultWorkspace.Channels.Find(c => c.ChannelId == channelId).Users.Find(u => u.EmailId == emailId);
-            resultWorkspace.Channels.Find(c => c.ChannelId == channelId).Users.Remove(userToDelete);
+            try
+            {
+                var userToDelete = resultWorkspace.DefaultChannels.Find(c => c.ChannelId == channelId).Users.Find(u => u.EmailId == emailId);
+                resultWorkspace.DefaultChannels.Find(c => c.ChannelId == channelId).Users.Remove(userToDelete);
+            }
+            catch
+            {
+                var userToDelete = resultWorkspace.Channels.Find(c => c.ChannelId == channelId).Users.Find(u => u.EmailId == emailId);
+                resultWorkspace.Channels.Find(c => c.ChannelId == channelId).Users.Remove(userToDelete);
+            }
+            
             var filterWorkspace = new FilterDefinitionBuilder<Workspace>().Where(r => r.WorkspaceId == resultWorkspace.WorkspaceId);
+
             var updateWorkspace = Builders<Workspace>.Update
                 .Set(r => r.DefaultChannels, resultWorkspace.DefaultChannels)
                 .Set(r => r.Channels, resultWorkspace.Channels)
                 .Set(r => r.WorkspaceId, resultWorkspace.WorkspaceId);
+
             await _dbWorkSpace.UpdateOneAsync(filterWorkspace, updateWorkspace);
             //// get redis database and call it cache
+
             var cache = RedisConnectorHelper.Connection.GetDatabase();
             //changed
+
             string jsonString = JsonConvert.SerializeObject(resultWorkspace);
+
             await cache.StringSetAsync($"{resultWorkspace.WorkspaceName}", jsonString);
+
             string jsonStringChannel = JsonConvert.SerializeObject(channel);
+
             await cache.StringSetAsync($"{channel.ChannelId}", jsonStringChannel);
             ///////////
         }

@@ -52,19 +52,24 @@ namespace RTMService.Hubs
         }
         public void SendWorkspaceObject(string workspaceName, string userMail)
         {
+            var searchedWorkspace = iservice.GetWorkspaceByName(workspaceName).Result;
+            var cache = RedisConnectorHelper.Connection.GetDatabase();
             try
             {
-                var searchedWorkspace = iservice.GetWorkspaceByName(workspaceName).Result;
-                var cache = RedisConnectorHelper.Connection.GetDatabase();
+               
                 var stringifiedUserState = cache.StringGetAsync($"{userMail}");
                 var UserStateObject = JsonConvert.DeserializeObject<UserState>(stringifiedUserState.Result);
                 var workspaceStateObject = UserStateObject.ListOfWorkspaceState.
                     Where(w => w.WorkspaceName == workspaceName).FirstOrDefault();
                 Clients.Clients(Context.ConnectionId).SendAsync("ReceiveUpdatedWorkspace", searchedWorkspace, workspaceStateObject);
             }
-            catch (Exception e)
+            catch 
             {
-                Console.WriteLine(e.Message);
+
+                var UserStateObject = iservice.GetUserStateByEmailId(userMail).Result;
+                var workspaceStateObject = UserStateObject.ListOfWorkspaceState.
+                    Where(w => w.WorkspaceName == workspaceName).FirstOrDefault();
+                Clients.Clients(Context.ConnectionId).SendAsync("ReceiveUpdatedWorkspace", searchedWorkspace, workspaceStateObject);
             }
             
         }
@@ -139,9 +144,10 @@ namespace RTMService.Hubs
 
         public void GetNotificationsForChannelsInWorkspace(string workspaceName, string emailId, string channelId, DateTime LastTimeStamp)
         {
+            var cache = RedisConnectorHelper.Connection.GetDatabase();
             try
             {
-                var cache = RedisConnectorHelper.Connection.GetDatabase();
+               
 
                 var stringifiedUserState = cache.StringGetAsync($"{emailId}");
 
@@ -158,16 +164,26 @@ namespace RTMService.Hubs
                 cache.StringSetAsync($"{emailId}", jsonString);
 
             }
-            catch(Exception e)
+            catch
             {
-                Console.WriteLine(e.Message);
-               // return null;
+                var UserStateObject = iservice.GetUserStateByEmailId(emailId).Result;
+                UserStateObject.ListOfWorkspaceState.Find(w => w.WorkspaceName == workspaceName).
+                ListOfChannelState.Find(c => c.channelId == channelId).UnreadMessageCount = 0;
+
+                UserStateObject.ListOfWorkspaceState.Find(w => w.WorkspaceName == workspaceName).
+                        ListOfChannelState.Find(c => c.channelId == channelId).LastTimestamp = LastTimeStamp;
+                //workspaceStateObject.ListOfChannelState.Find(v => v.channelId == channelId).UnreadMessageCount = 0;
+                //workspaceStateObject.ListOfChannelState.Find(v => v.channelId == channelId).LastTimestamp = LastTimeStamp;
+                //return workspaceStateObject;
+                string jsonString = JsonConvert.SerializeObject(UserStateObject);
+                cache.StringSetAsync($"{emailId}", jsonString);
             }
 
         }
         public void whoistyping(string channelId, string name)
         {
-            Clients.OthersInGroup(channelId).SendAsync("whoistyping", name + " is typing");
+            Groups.AddToGroupAsync(Context.ConnectionId, channelId);
+            Clients.OthersInGroup(channelId).SendAsync("whoistyping", name + " is typing",channelId,name);
             //Clients.Others.SendAsync("whoistyping",name +" is typing");
         }
     }

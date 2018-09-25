@@ -73,6 +73,8 @@ namespace RTMService.Hubs
                     Where(w => w.WorkspaceName == workspaceName).FirstOrDefault();
                 Clients.Clients(Context.ConnectionId).SendAsync("ReceiveUpdatedWorkspace", searchedWorkspace, workspaceStateObject);
             }
+            finally
+            { }
             
         }
         // send all user channels
@@ -84,24 +86,32 @@ namespace RTMService.Hubs
         // send message in channel
         public void SendMessageInChannel(string sender, Message message, string channelId, string workspaceName)
         {
-            //////////////////////Notification Work//////////////////////////////////////
-            var cache = RedisConnectorHelper.Connection.GetDatabase();
+            try
+            {
+                //////////////////////Notification Work//////////////////////////////////////
+                var cache = RedisConnectorHelper.Connection.GetDatabase();
 
-            var stringifiedUserState = cache.StringGetAsync($"{sender}");
+                var stringifiedUserState = cache.StringGetAsync($"{sender}");
 
-            var UserStateObject = JsonConvert.DeserializeObject<UserState>(stringifiedUserState.Result);
-            UserStateObject.ListOfWorkspaceState.Find(w => w.WorkspaceName == workspaceName).
-                ListOfChannelState.Find(c => c.channelId == channelId).UnreadMessageCount = 0;
+                var UserStateObject = JsonConvert.DeserializeObject<UserState>(stringifiedUserState.Result);
+                UserStateObject.ListOfWorkspaceState.Find(w => w.WorkspaceName == workspaceName).
+                    ListOfChannelState.Find(c => c.channelId == channelId).UnreadMessageCount = 0;
 
-            UserStateObject.ListOfWorkspaceState.Find(w => w.WorkspaceName == workspaceName).
-                    ListOfChannelState.Find(c => c.channelId == channelId).LastTimestamp = message.Timestamp;
-            string jsonString = JsonConvert.SerializeObject(UserStateObject);
-            cache.StringSetAsync($"{sender}", jsonString);
+                UserStateObject.ListOfWorkspaceState.Find(w => w.WorkspaceName == workspaceName).
+                        ListOfChannelState.Find(c => c.channelId == channelId).LastTimestamp = message.Timestamp;
+                string jsonString = JsonConvert.SerializeObject(UserStateObject);
+                cache.StringSetAsync($"{sender}", jsonString);
 
-            ///////////////////////////////////////////////////////////////////////////////
-            Groups.AddToGroupAsync(Context.ConnectionId, channelId);
-            var newMessage = iservice.AddMessageToChannel(message, channelId, sender).Result;
-            Clients.Group(channelId).SendAsync("SendMessageInChannel", sender, newMessage);
+                ///////////////////////////////////////////////////////////////////////////////
+                Groups.AddToGroupAsync(Context.ConnectionId, channelId);
+                var newMessage = iservice.AddMessageToChannel(message, channelId, sender).Result;
+                Clients.Group(channelId).SendAsync("SendMessageInChannel", sender, newMessage);
+            }
+            catch (Exception e)
+            {
+                Console.Write(e.Message);
+            }
+           
         }
         
         public override Task OnConnectedAsync()

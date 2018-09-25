@@ -135,6 +135,14 @@ namespace RTMService.Services
             //    };
             //   await AddUserToWorkspace(newUser, workSpace.WorkspaceName);
             //}
+            UserAccountView newUser = new UserAccountView
+            {
+                EmailId = "entre.bot@gmail.com",
+                FirstName = "Bot",
+                LastName = "User",
+                Id= "60681125-e117-4bb2-9287-eb840c4cg672"
+            };
+            await AddUserToWorkspace(newUser, workSpace.WorkspaceName);
 
             return await GetWorkspaceById(newWorkspace.WorkspaceId);
         }

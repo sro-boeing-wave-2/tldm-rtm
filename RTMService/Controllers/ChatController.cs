@@ -289,23 +289,23 @@ namespace RTMService.Controllers
         }
 
         // // getting all channels a user is part of in a workspace by workspace name and emailid
-        [HttpGet]
-        [Route("workspaces/{workspaceName}/{emailId}")]
-        public IActionResult GetAllChannelsOfUserInWorkSpace(string workspaceName, string emailId)
-        {
-            // check if both the fields are given for input
-            if (workspaceName == null || emailId == null)
-            {
-                return NotFound("Please enter both workspaceName and email id");
-            }
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-            // call service to get all user channels in workspace 
-            List<Channel> channels = iservice.GetAllUserChannelsInWorkSpace(workspaceName, emailId).Result;
-            return new ObjectResult(channels);
-        }
+        //[HttpGet]
+        //[Route("workspaces/{workspaceName}/{emailId}")]
+        //public IActionResult GetAllChannelsOfUserInWorkSpace(string workspaceName, string emailId)
+        //{
+        //    // check if both the fields are given for input
+        //    if (workspaceName == null || emailId == null)
+        //    {
+        //        return NotFound("Please enter both workspaceName and email id");
+        //    }
+        //    if (!ModelState.IsValid)
+        //    {
+        //        return BadRequest(ModelState);
+        //    }
+        //    // call service to get all user channels in workspace 
+        //    List<Channel> channels = iservice.GetAllUserChannelsInWorkSpace(workspaceName, emailId).Result;
+        //    return new ObjectResult(channels);
+        //}
 
         // // getting all channels of a user by emailid
         [HttpGet]

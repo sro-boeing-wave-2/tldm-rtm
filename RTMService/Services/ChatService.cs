@@ -260,6 +260,12 @@ namespace RTMService.Services
 
             //update it in cache
             await cache.StringSetAsync($"{workspaceName}", jsonString);
+
+            // convert channel object to string
+            string jsonStringChannel = JsonConvert.SerializeObject(channel);
+
+            // update key value pair of channel in cache
+            await cache.StringSetAsync($"{channel.ChannelId}", jsonStringChannel);
             ///////////
             return channel;
         }
@@ -340,19 +346,21 @@ namespace RTMService.Services
         }
         public async Task<Channel> GetChannelById(string channelId)
         {
+            if(channelId== null)
+            {
+                return null;
+            }
             // get redis database and call it cache
             var cache = RedisConnectorHelper.Connection.GetDatabase();
 
             var stringifiedChannel = cache.StringGetAsync($"{channelId}");
 
-            if (stringifiedChannel.Result.HasValue)
-            {
-                var channelObject = JsonConvert.DeserializeObject<Channel>(stringifiedChannel.Result);
+            var channelObject = JsonConvert.DeserializeObject<Channel>(stringifiedChannel.Result);
 
+            if(channelObject.ChannelId == channelId)
+            {
                 return channelObject;
             }
-
-
 
             var Channel = _dbChannel.Find(w => w.ChannelId == channelId).FirstOrDefaultAsync();
 
@@ -807,7 +815,7 @@ namespace RTMService.Services
             }
             /////////
             var oneToOneChannel = GetChannelById(channelId);
-            if (oneToOneChannel.Result != null)
+            if (oneToOneChannel.Result !=null)
             {
                 return oneToOneChannel.Result;
             }

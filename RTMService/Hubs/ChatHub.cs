@@ -13,13 +13,14 @@ namespace RTMService.Hubs
     {
         private IChatService iservice;
 
+        // Dictionary for storing current connections
+        static Dictionary<string, string> CurrentConnections = new Dictionary<string, string>();
 
+        //constructor with dependency injection
         public ChatHub(IChatService c)
         {
             iservice = c;
         }
-
-
         public void SendToAll(string name, string message)
         {
             Clients.All.SendAsync("sendToAll", name, message);
@@ -45,18 +46,20 @@ namespace RTMService.Hubs
             Groups.RemoveFromGroupAsync(Context.ConnectionId, "foo");
         }
 
+         
         public void SendMessageToGroups(string sender, string message)
         {
             List<string> groups = new List<string>() { "foo" };
             Clients.Groups(groups).SendAsync("SendMessageToGroups", sender, message);
         }
+        
+        // Send workspace object and user notifications 
         public void SendWorkspaceObject(string workspaceName, string userMail)
         {
             var searchedWorkspace = iservice.GetWorkspaceByName(workspaceName).Result;
             var cache = RedisConnectorHelper.Connection.GetDatabase();
             try
-            {
-               
+            {               
                 var stringifiedUserState = cache.StringGetAsync($"{userMail}");
                 var UserStateObject = JsonConvert.DeserializeObject<UserState>(stringifiedUserState.Result);
                 var workspaceStateObject = UserStateObject.ListOfWorkspaceState.
@@ -65,7 +68,6 @@ namespace RTMService.Hubs
             }
             catch 
             {
-
                 var UserStateObject = iservice.GetUserStateByEmailId(userMail).Result;
                 var workspaceStateObject = UserStateObject.ListOfWorkspaceState.
                     Where(w => w.WorkspaceName == workspaceName).FirstOrDefault();
@@ -73,12 +75,13 @@ namespace RTMService.Hubs
             }
             
         }
+        // send all user channels
         public void SendAllUserChannel(string emailId)
         {
             var listOfUserChannels = iservice.GetAllUserChannels(emailId).Result;
             Clients.All.SendAsync("ReceiveUserChannels", listOfUserChannels);
         }
-        //public void SendMessageInChannel(string sender, Message message, string channelId)
+        // send message in channel
         public void SendMessageInChannel(string sender, Message message, string channelId, string workspaceName)
         {
             //////////////////////Notification Work//////////////////////////////////////
@@ -99,14 +102,12 @@ namespace RTMService.Hubs
             Groups.AddToGroupAsync(Context.ConnectionId, channelId);
             var newMessage = iservice.AddMessageToChannel(message, channelId, sender).Result;
             Clients.Group(channelId).SendAsync("SendMessageInChannel", sender, newMessage);
-            //Clients.Client(Context.ConnectionId).SendAsync(channelId);
         }
-        static Dictionary<string, string> CurrentConnections = new Dictionary<string, string>();
+        
         public override Task OnConnectedAsync()
         {
             string id = Context.ConnectionId;
             CurrentConnections.Add(id, "");
-            //SendToAllconnid(CurrentConnections.Count);
             return base.OnConnectedAsync();
         }
         public override Task OnDisconnectedAsync(Exception exception)
@@ -147,8 +148,6 @@ namespace RTMService.Hubs
             var cache = RedisConnectorHelper.Connection.GetDatabase();
             try
             {
-               
-
                 var stringifiedUserState = cache.StringGetAsync($"{emailId}");
 
                 var UserStateObject = JsonConvert.DeserializeObject<UserState>(stringifiedUserState.Result);
@@ -157,9 +156,7 @@ namespace RTMService.Hubs
 
                 UserStateObject.ListOfWorkspaceState.Find(w => w.WorkspaceName == workspaceName).
                         ListOfChannelState.Find(c => c.channelId == channelId).LastTimestamp = LastTimeStamp;
-                //workspaceStateObject.ListOfChannelState.Find(v => v.channelId == channelId).UnreadMessageCount = 0;
-                //workspaceStateObject.ListOfChannelState.Find(v => v.channelId == channelId).LastTimestamp = LastTimeStamp;
-                //return workspaceStateObject;
+
                 string jsonString = JsonConvert.SerializeObject(UserStateObject);
                 cache.StringSetAsync($"{emailId}", jsonString);
 
@@ -172,9 +169,7 @@ namespace RTMService.Hubs
 
                 UserStateObject.ListOfWorkspaceState.Find(w => w.WorkspaceName == workspaceName).
                         ListOfChannelState.Find(c => c.channelId == channelId).LastTimestamp = LastTimeStamp;
-                //workspaceStateObject.ListOfChannelState.Find(v => v.channelId == channelId).UnreadMessageCount = 0;
-                //workspaceStateObject.ListOfChannelState.Find(v => v.channelId == channelId).LastTimestamp = LastTimeStamp;
-                //return workspaceStateObject;
+
                 string jsonString = JsonConvert.SerializeObject(UserStateObject);
                 cache.StringSetAsync($"{emailId}", jsonString);
             }
@@ -184,7 +179,6 @@ namespace RTMService.Hubs
         {
             Groups.AddToGroupAsync(Context.ConnectionId, channelId);
             Clients.OthersInGroup(channelId).SendAsync("whoistyping", name + " is typing",channelId,name);
-            //Clients.Others.SendAsync("whoistyping",name +" is typing");
         }
     }
 }

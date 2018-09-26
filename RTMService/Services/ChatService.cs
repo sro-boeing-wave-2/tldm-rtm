@@ -571,6 +571,17 @@ namespace RTMService.Services
             }
             return listOfChannelIds;
         }
+        // get workspace name by channel id
+        public async Task<string> GetWorkspaceNameByChannelId(string channelId)
+        {
+            // get channel by id
+            var channel = GetChannelById(channelId).Result;
+
+            //search workspace by workspace id in channel in mongo 
+            var workspace = await _dbWorkSpace.Find(w => w.WorkspaceId == channel.WorkspaceId).FirstOrDefaultAsync();
+
+            return workspace.WorkspaceName;
+        }
         // get older messages of a channel 
         // total count of messages - N + 10 messages
         public async Task<List<Message>> GetLastNMessagesOfChannel(string channelId, int N)
@@ -804,6 +815,32 @@ namespace RTMService.Services
             // update channel in cache 
             await cache.StringSetAsync($"{channel.ChannelId}", jsonStringChannel);
             ///////////
+            ///////////////Notification Work///////////////////////
+            // get user state from the cache 
+            var stringifiedUserState = cache.StringGetAsync($"{emailId}");
+
+            // convert the result string to user state object 
+            var userstate = JsonConvert.DeserializeObject<UserState>(stringifiedUserState.Result);
+
+            string workspaceName = GetWorkspaceNameByChannelId(channelId).Result;
+           
+            // find channel state of user from channel id 
+            var channelState =  userstate.ListOfWorkspaceState.
+                Find(w => w.WorkspaceName == workspaceName).
+                ListOfChannelState.
+                Find(c => c.channelId == channelId);
+
+            // delete channel state for the user state
+            userstate.ListOfWorkspaceState.
+                Find(w => w.WorkspaceName == workspaceName).
+                ListOfChannelState.Remove(channelState);
+
+            //convert the object back to string
+            string jsonStringUserState = JsonConvert.SerializeObject(userstate);
+
+            // update the user state inside cache
+            await cache.StringSetAsync($"{emailId}", jsonStringUserState);
+            ///////////////////////////////////////////////////////
         }
         // get all users of a workspace 
         public List<User> GetAllUsersInWorkspace(string workspaceName)

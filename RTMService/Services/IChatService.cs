@@ -53,5 +53,7 @@ namespace RTMService.Services
         Task CreateNotificationStateOfUser(UserState userState);
         Task<UserState> GetUserStateByEmailId(string emailId);
 
+        Task<string> GetWorkspaceNameByChannelId(string channelId);
+
     }
 }

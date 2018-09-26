@@ -52,6 +52,11 @@ namespace ChatUnitTesting
 
         public class FakeChatService : IChatService
         {
+            public async Task<string> GetWorkspaceNameByChannelId(string channelId)
+            {
+
+                return "";
+            }
             public async Task CreateNotificationStateOfUser(UserState userState)
             {
                 

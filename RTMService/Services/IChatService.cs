@@ -15,6 +15,9 @@ namespace RTMService.Services
         Task<Workspace> GetWorkspaceById(string id);
         Task<Workspace> GetWorkspaceByName(string workspaceName);
 
+        // Redis Pub-Sub Work
+        //void SubscribeMessages(Func<string, Message, string, string> callback);
+
 
         ////// not implemented
         ////Task<Workspace> UpdateWorkspaceByName(string workspaceName);

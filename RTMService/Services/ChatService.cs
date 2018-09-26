@@ -1,6 +1,7 @@
 ﻿using MongoDB.Driver;
 using MongoDB.Driver.Builders;
 using Newtonsoft.Json;
+using RTMService.Hubs;
 using RTMService.Models;
 using StackExchange.Redis;
 using System;
@@ -25,6 +26,7 @@ namespace RTMService.Services
         // constructor for chat service
         public ChatService()
         {
+            
             // for running the application in local machine
            //_client = new MongoClient("mongodb://localhost:27017");
            
@@ -49,6 +51,16 @@ namespace RTMService.Services
             _dbOneToOne = _client.GetDatabase("OneToOneTable").GetCollection<OneToOneChannelInfo>("OneToOne");
             // User State and Notification Collection
             _dbNotificationUserState = _client.GetDatabase("Notification").GetCollection<UserState>("UserState");
+        }
+
+        public void SubscribeMessages(Func<string, Message, string, bool> callback)
+        {
+            //var subscriber = RedisConnectorHelper.Connection.GetSubscriber();
+            //subscriber.Subscribe("messages", (channel, value) =>
+            //{
+                
+            //    callback();
+            //});
         }
 
         //find all workspaces from database
@@ -687,9 +699,19 @@ namespace RTMService.Services
             {
                 Console.Write(e.Message);
             }
-            
-            
             //////////////////////////////////////////////////////////////////////////
+            ////////////////Pub/Sub Redis/////////////////////////////////////////////
+            // Create pub/sub
+            //var PubSub = RedisConnectorHelper.Connection.GetSubscriber();
+
+            //string RedisMessage = JsonConvert.SerializeObject(newMessage);
+
+            //// Subscriber subscribes to a channel
+            //PubSub.Subscribe("MessageChannel", (channel, Redismessage) => ChatHub.);
+
+            //// Notify subscriber(s) if you're joining
+            //PubSub.Publish("MessageChannel", RedisMessage);
+            ///////////////////////////////////////////////////////////////////////////
             return newMessage;
 
         }
@@ -840,6 +862,13 @@ namespace RTMService.Services
 
             // update the user state inside cache
             await cache.StringSetAsync($"{emailId}", jsonStringUserState);
+            //updating in mongo
+            var filterUserState = new FilterDefinitionBuilder<UserState>().Where(r => r.EmailId == emailId);
+
+            var updateUserState = Builders<UserState>.Update
+                .Set(r => r.ListOfWorkspaceState, userstate.ListOfWorkspaceState);
+
+            await _dbNotificationUserState.UpdateOneAsync(filterUserState, updateUserState);
             ///////////////////////////////////////////////////////
         }
         // get all users of a workspace 

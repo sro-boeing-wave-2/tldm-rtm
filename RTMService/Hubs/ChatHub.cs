@@ -4,7 +4,7 @@ using RTMService.Models;
 using RTMService.Services;
 using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Linq;//
 using System.Threading.Tasks;
 
 namespace RTMService.Hubs
@@ -20,6 +20,7 @@ namespace RTMService.Hubs
         public ChatHub(IChatService c)
         {
             iservice = c;
+           // c.SubscribeMessages(this.SendMessageFromRedis);
         }
         public void SendToAll(string name, string message)
         {
@@ -45,7 +46,13 @@ namespace RTMService.Hubs
         {
             Groups.RemoveFromGroupAsync(Context.ConnectionId, "foo");
         }
-
+        
+        //redis Pub-Sub
+        public string SendMessageFromRedis(string sender, Message newMessage, string channelId)
+        {
+            Clients.Group(channelId).SendAsync("SendMessageInChannel", sender, newMessage);
+            return "";
+        }
          
         public void SendMessageToGroups(string sender, string message)
         {
@@ -81,7 +88,7 @@ namespace RTMService.Hubs
         public void SendAllUserChannel(string emailId)
         {
             var listOfUserChannels = iservice.GetAllUserChannels(emailId).Result;
-            Clients.All.SendAsync("ReceiveUserChannels", listOfUserChannels);
+            Clients.All.SendAsync("ReceiveUserChannels", listOfUserChannels,emailId);
         }
         // send message in channel
         public void SendMessageInChannel(string sender, Message message, string channelId, string workspaceName)
@@ -161,27 +168,36 @@ namespace RTMService.Hubs
                 var stringifiedUserState = cache.StringGetAsync($"{emailId}");
 
                 var UserStateObject = JsonConvert.DeserializeObject<UserState>(stringifiedUserState.Result);
-                UserStateObject.ListOfWorkspaceState.Find(w => w.WorkspaceName == workspaceName).
+                if(UserStateObject.EmailId == emailId)
+                {
+                    UserStateObject.ListOfWorkspaceState.Find(w => w.WorkspaceName == workspaceName).
                 ListOfChannelState.Find(c => c.channelId == channelId).UnreadMessageCount = 0;
 
-                UserStateObject.ListOfWorkspaceState.Find(w => w.WorkspaceName == workspaceName).
-                        ListOfChannelState.Find(c => c.channelId == channelId).LastTimestamp = LastTimeStamp;
+                    UserStateObject.ListOfWorkspaceState.Find(w => w.WorkspaceName == workspaceName).
+                            ListOfChannelState.Find(c => c.channelId == channelId).LastTimestamp = LastTimeStamp;
 
-                string jsonString = JsonConvert.SerializeObject(UserStateObject);
-                cache.StringSetAsync($"{emailId}", jsonString);
+                    string jsonString = JsonConvert.SerializeObject(UserStateObject);
+                    cache.StringSetAsync($"{emailId}", jsonString);
+                }
+                else
+                {
+                    UserStateObject = iservice.GetUserStateByEmailId(emailId).Result;
+                    UserStateObject.ListOfWorkspaceState.Find(w => w.WorkspaceName == workspaceName).
+                    ListOfChannelState.Find(c => c.channelId == channelId).UnreadMessageCount = 0;
+
+                    UserStateObject.ListOfWorkspaceState.Find(w => w.WorkspaceName == workspaceName).
+                            ListOfChannelState.Find(c => c.channelId == channelId).LastTimestamp = LastTimeStamp;
+
+                    string jsonString = JsonConvert.SerializeObject(UserStateObject);
+                    cache.StringSetAsync($"{emailId}", jsonString);
+                }
+                
+                
 
             }
             catch
             {
-                var UserStateObject = iservice.GetUserStateByEmailId(emailId).Result;
-                UserStateObject.ListOfWorkspaceState.Find(w => w.WorkspaceName == workspaceName).
-                ListOfChannelState.Find(c => c.channelId == channelId).UnreadMessageCount = 0;
-
-                UserStateObject.ListOfWorkspaceState.Find(w => w.WorkspaceName == workspaceName).
-                        ListOfChannelState.Find(c => c.channelId == channelId).LastTimestamp = LastTimeStamp;
-
-                string jsonString = JsonConvert.SerializeObject(UserStateObject);
-                cache.StringSetAsync($"{emailId}", jsonString);
+                
             }
 
         }

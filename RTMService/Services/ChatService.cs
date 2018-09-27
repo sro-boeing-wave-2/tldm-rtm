@@ -21,7 +21,6 @@ namespace RTMService.Services
         IMongoCollection<Message> _dbMessage;
         IMongoCollection<OneToOneChannelInfo> _dbOneToOne;
         IMongoCollection<UserState> _dbNotificationUserState;
-        //Func<string, Message, string, string> callback;
 
         // constructor for chat service
         public ChatService()
@@ -56,30 +55,7 @@ namespace RTMService.Services
 
             // User State and Notification Collection
             _dbNotificationUserState = _client.GetDatabase("Notification").GetCollection<UserState>("UserState");
-
-
-            //this.SubscribeMessages();
         }
-
-        //public void SetCallback(Func<string, Message, string, string> callback)
-        //{
-        //    this.callback = callback;
-        //}
-
-        //public void SubscribeMessages()
-        //{
-        //    var subscriber = RedisConnectorHelper.Connection.GetSubscriber();
-        //    subscriber.Subscribe("MessageChannel", (channel, value) =>
-        //    {
-        //        var messageWraaper = JsonConvert.DeserializeObject<MessageWrapper>(value);
-        //        //Console.WriteLine(value);
-        //        Message NewMessage = messageWraaper.NewMessage;
-        //        string ChannelId =messageWraaper.ChannelId;
-        //        string SenderMail=messageWraaper.SenderMail;
-        //        this.callback(SenderMail,NewMessage,ChannelId );
-        //        //this.callback();
-        //    });
-        //}
 
         //find all workspaces from database
         public async Task<IEnumerable<Workspace>> GetAllWorkspacesAsync()
@@ -714,26 +690,6 @@ namespace RTMService.Services
             {
                 Console.Write(e.Message);
             }
-            //////////////////////////////////////////////////////////////////////////
-            ////////////////Pub/Sub Redis/////////////////////////////////////////////
-            // Create pub/sub
-            //var PubSub = RedisConnectorHelper.Connection.GetSubscriber();
-            //MessageWrapper messageWrapper = new MessageWrapper()
-            //{
-            //    NewMessage = newMessage,
-            //    SenderMail = senderMail,
-            //    ChannelId = channelId,
-            //};
-            
-            ////string RedisMessage = JsonConvert.SerializeObject(newMessage);
-            ////RedisValue newValue = new RedisValue();
-            ////newValue.TryParse()
-            ////// Subscriber subscribes to a channel
-            ////PubSub.Subscribe("MessageChannel", (channel, Redismessage) => ChatHub.);
-
-            ////// Notify subscriber(s) if you're joining
-            //PubSub.Publish("MessageChannel", JsonConvert.SerializeObject(messageWrapper));
-            ///////////////////////////////////////////////////////////////////////////
             return newMessage;
 
         }

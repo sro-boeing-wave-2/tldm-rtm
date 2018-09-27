@@ -19,8 +19,9 @@ namespace RTMService.Hubs
         //constructor with dependency injection
         public ChatHub(IChatService c)
         {
+            //c.SetCallback(this.SendMessageFromRedis);
             iservice = c;
-           // c.SubscribeMessages(this.SendMessageFromRedis);
+            //c.SubscribeMessages(this.SendMessageFromRedis);
         }
         public void SendToAll(string name, string message)
         {
@@ -48,11 +49,20 @@ namespace RTMService.Hubs
         }
         
         //redis Pub-Sub
-        public string SendMessageFromRedis(string sender, Message newMessage, string channelId)
-        {
-            Clients.Group(channelId).SendAsync("SendMessageInChannel", sender, newMessage);
-            return "";
-        }
+        //public string SendMessageFromRedis(string sender, Message newMessage, string channelId)
+        //{
+        //    try
+        //    {
+        //        Console.WriteLine("message published " + newMessage.MessageBody);
+        //        Clients.Group(channelId).SendAsync("SendMessageInChannel", sender, newMessage);
+        //    }
+        //    catch(Exception e)
+        //    {
+        //        Console.WriteLine(e.Message);
+        //    }
+            
+        //    return "";
+        //}
          
         public void SendMessageToGroups(string sender, string message)
         {
@@ -93,6 +103,7 @@ namespace RTMService.Hubs
         // send message in channel
         public void SendMessageInChannel(string sender, Message message, string channelId, string workspaceName)
         {
+           
             try
             {
                 //////////////////////Notification Work//////////////////////////////////////
@@ -112,7 +123,20 @@ namespace RTMService.Hubs
                 ///////////////////////////////////////////////////////////////////////////////
                 Groups.AddToGroupAsync(Context.ConnectionId, channelId);
                 var newMessage = iservice.AddMessageToChannel(message, channelId, sender).Result;
-                Clients.Group(channelId).SendAsync("SendMessageInChannel", sender, newMessage);
+               Clients.Group(channelId).SendAsync("SendMessageInChannel", sender, newMessage);
+
+                ////////////////////////////////////////
+                //var PubSub = RedisConnectorHelper.Connection.GetSubscriber();
+                //MessageWrapper messageWrapper = new MessageWrapper()
+                //{
+                //    NewMessage = newMessage,
+                //    SenderMail = sender,
+                //    ChannelId = channelId,
+                //};
+                //PubSub.Publish("MessageChannel", JsonConvert.SerializeObject(messageWrapper));
+                ///////////////////////////////////////
+
+                //Console.WriteLine("in hub method");
             }
             catch (Exception e)
             {
@@ -123,6 +147,7 @@ namespace RTMService.Hubs
         
         public override Task OnConnectedAsync()
         {
+            //Console.WriteLine("in on connected");
             string id = Context.ConnectionId;
             CurrentConnections.Add(id, "");
             return base.OnConnectedAsync();

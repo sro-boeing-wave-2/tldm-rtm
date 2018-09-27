@@ -2,9 +2,9 @@ version: "3"
 services:
   web:
     build: ./RTMService
-    container_name: RTM
-    ports:
-      - "5004:80"
+    #container_name: RTM
+    #ports:
+    #  - "5004:80"
     depends_on:
       - db
       - redis

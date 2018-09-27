@@ -12,7 +12,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using RTMService.Hubs;
 using RTMService.Services;
-// new one
+using Microsoft.AspNetCore.SignalR.Redis;
+
 namespace RTMService
 {
     public class Startup
@@ -37,8 +38,8 @@ namespace RTMService
                         .AllowCredentials()
                 ));
 
-            services.AddSignalR();
-            services.AddScoped<IChatService, ChatService>();
+            services.AddSignalR().AddRedis("redis:6379");
+            services.AddSingleton<IChatService, ChatService>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

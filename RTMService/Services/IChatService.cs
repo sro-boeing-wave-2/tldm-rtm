@@ -8,6 +8,7 @@ namespace RTMService.Services
 {
     public interface IChatService
     {
+        //void SetCallback(Func<string, Message, string, string> cb);
         // workspace related task
         Task<Workspace> CreateWorkspace(WorkspaceView workspace);
         Task DeleteWorkspace(string workspaceName);
@@ -16,7 +17,7 @@ namespace RTMService.Services
         Task<Workspace> GetWorkspaceByName(string workspaceName);
 
         // Redis Pub-Sub Work
-        //void SubscribeMessages(Func<string, Message, string, string> callback);
+        //void SubscribeMessages();
 
 
         ////// not implemented

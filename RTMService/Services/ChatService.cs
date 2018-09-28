@@ -128,16 +128,16 @@ namespace RTMService.Services
                 // newChannel.Users.Add(user);
                 await CreateDefaultChannel(newChannel, workSpace.WorkspaceName);
             }
-            //foreach(var bot in workSpace.Bots)
-            //{
-            //    UserAccountView newUser = new UserAccountView
-            //    {
-            //        EmailId = bot.LogoUrl,
-            //        FirstName = bot.Name,
-            //        LastName = bot.Name
-            //    };
-            //   await AddUserToWorkspace(newUser, workSpace.WorkspaceName);
-            //}
+            foreach (var bot in workSpace.Bots)
+            {
+                UserAccountView newBot = new UserAccountView
+                {
+                    EmailId = bot.EmailId,
+                    FirstName = bot.Name,
+                    Id = bot.Id
+                };
+                await AddUserToWorkspace(newBot, workSpace.WorkspaceName);
+            }
 
             // adding default bot for interspace communication 
             UserAccountView newUser = new UserAccountView
@@ -318,6 +318,10 @@ namespace RTMService.Services
                 UnreadMessageCount = 0
             };
 
+            // add both users to user list
+            channelState.ListOfUsers.Add(channel.Users[0].EmailId);
+            channelState.ListOfUsers.Add(channel.Users[1].EmailId);
+
             // add it to its current workspace state of user
             userstate.ListOfWorkspaceState.Find(w => w.WorkspaceName == workspaceName).ListOfChannelState.Add(channelState);
 
@@ -347,6 +351,10 @@ namespace RTMService.Services
                 channelId = channel.ChannelId,
                 UnreadMessageCount = 0
             };
+
+            // add both users to user list
+            channelState1.ListOfUsers.Add(channel.Users[0].EmailId);
+            channelState1.ListOfUsers.Add(channel.Users[1].EmailId);
 
             // add it to its current workspace state of user
             userstate1.ListOfWorkspaceState.Find(w => w.WorkspaceName == workspaceName).ListOfChannelState.Add(channelState1);

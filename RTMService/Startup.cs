@@ -29,6 +29,7 @@ namespace RTMService
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
+            services.AddSignalR().AddRedis("redis:6379");
             services.AddCors(o => o.AddPolicy(
                 "CorsPolicy", builder =>
                     builder
@@ -38,7 +39,6 @@ namespace RTMService
                         .AllowCredentials()
                 ));
 
-            services.AddSignalR().AddRedis("redis:6379");
             services.AddSingleton<IChatService, ChatService>();
         }
 
@@ -54,7 +54,6 @@ namespace RTMService
             {
                 routes.MapHub<ChatHub>("/chat");
             });
-            app.UseHttpsRedirection();
             app.UseMvc();
         }
     }

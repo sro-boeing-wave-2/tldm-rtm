@@ -49,10 +49,6 @@ namespace RTMService
             {
                 app.UseDeveloperExceptionPage();
             }
-            else
-            {
-                app.UseHsts();
-            }
             app.UseCors("CorsPolicy");
             app.UseSignalR(routes =>
             {

@@ -196,7 +196,7 @@ namespace RTMService.Hubs
         }
         public void whoistyping(string channelId, string name)
         {
-            Groups.AddToGroupAsync(Context.ConnectionId, channelId);
+            //Groups.AddToGroupAsync(Context.ConnectionId, channelId);
             Clients.OthersInGroup(channelId).SendAsync("whoistyping", name + " is typing",channelId,name);
         }
     }

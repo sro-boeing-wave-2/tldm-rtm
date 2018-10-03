@@ -143,8 +143,8 @@ namespace RTMService.Services
             UserAccountView newUser = new UserAccountView
             {
                 EmailId = "entre.bot@gmail.com",
-                FirstName = "Bot",
-                LastName = "User",
+                FirstName = "Entre",
+                LastName = "Bot",
                 Id= "60681125-e117-4bb2-9287-eb840c4cg672"
             };
             await AddUserToWorkspace(newUser, workSpace.WorkspaceName);

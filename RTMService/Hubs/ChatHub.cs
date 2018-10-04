@@ -75,10 +75,15 @@ namespace RTMService.Hubs
             { }
             
         }
-        // add and remove user from channel notification
-        public void AddLeaveChannelNotification(string channelId, User user)
+        // add user from channel notification
+        public void AddChannelNotification(string channelId, User user)
         {
-            Clients.Group(channelId).SendAsync("ReceiveChannelNotification", user,channelId);
+            Clients.Group(channelId).SendAsync("ReceiveAddInChannelNotification", user,channelId);
+        }
+        // remove user from channel notification
+        public void LeaveChannelNotification(string channelId, User user)
+        {
+            Clients.Group(channelId).SendAsync("ReceiveLeaveInChannelNotification", user, channelId);
         }
         // send all user channels
         public void SendAllUserChannel(string emailId)

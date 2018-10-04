@@ -134,6 +134,7 @@ namespace RTMService.Services
                 {
                     EmailId = bot.EmailId,
                     FirstName = bot.Name,
+                    LastName = "Bot",
                     Id = bot.Id
                 };
                 await AddUserToWorkspace(newBot, workSpace.WorkspaceName);

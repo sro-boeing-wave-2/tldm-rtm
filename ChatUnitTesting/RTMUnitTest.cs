@@ -27,7 +27,7 @@ namespace ChatUnitTesting
         {
             MessageId = "one",
             MessageBody = "msgbody",
-            Timestamp = DateTime.Now,
+            Timestamp = DateTime.Now.ToShortDateString(),
             IsStarred = true,
             Sender = new User { }
         };

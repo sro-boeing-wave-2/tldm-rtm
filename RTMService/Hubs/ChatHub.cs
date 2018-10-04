@@ -163,7 +163,7 @@ namespace RTMService.Hubs
 
         }
 
-        public void GetNotificationsForChannelsInWorkspace(string workspaceName, string emailId, string channelId, DateTime LastTimeStamp)
+        public void GetNotificationsForChannelsInWorkspace(string workspaceName, string emailId, string channelId, string LastTimeStamp)
         {
             var cache = RedisConnectorHelper.Connection.GetDatabase();
             try
